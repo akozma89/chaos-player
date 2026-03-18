@@ -61,7 +61,7 @@ describe('createRoom', () => {
       })),
     })
 
-    const result = await createRoom({ name: 'Party Room', hostId: 'host-uuid' })
+    const result = await createRoom({ name: 'Party Room', hostId: 'host-uuid', username: 'HostUser' })
 
     expect(result.data).toBeDefined()
     expect(result.error).toBeNull()
@@ -79,7 +79,7 @@ describe('createRoom', () => {
       })),
     })
 
-    const result = await createRoom({ name: 'Party Room', hostId: 'host-uuid' })
+    const result = await createRoom({ name: 'Party Room', hostId: 'host-uuid', username: 'HostUser' })
 
     expect(result.data).toBeNull()
     expect(result.error).toBeTruthy()

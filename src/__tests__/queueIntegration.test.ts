@@ -9,6 +9,7 @@ import type { QueueItem } from '../types'
 jest.mock('../lib/supabase', () => ({
   supabase: {
     from: jest.fn(),
+    rpc: jest.fn(() => Promise.resolve({ data: null, error: null })),
     channel: jest.fn(() => ({
       on: jest.fn().mockReturnThis(),
       subscribe: jest.fn(),
@@ -31,8 +32,9 @@ const makeItem = (overrides: Partial<QueueItem> = {}): QueueItem => ({
   upvotes: 0,
   downvotes: 0,
   status: 'pending',
+  playingSince: null,
   ...overrides,
-})
+} as QueueItem)
 
 describe('Queue sync: add/remove/reorder', () => {
   beforeEach(() => {

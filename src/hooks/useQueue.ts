@@ -12,6 +12,8 @@ export function useQueue(roomId: string, userId: string) {
   const [error, setError] = useState<string | null>(null)
   // Track user's current vote per queue item for optimistic delta computation
   const userVotes = useRef<Map<string, 'upvote' | 'downvote'>>(new Map())
+  // Guard to ensure we only ever trigger bootstrap once per session
+  const hasBootstrapped = useRef(false)
 
   const loadQueue = useCallback(async () => {
     if (!roomId) return
@@ -26,11 +28,23 @@ export function useQueue(roomId: string, userId: string) {
   }, [roomId])
 
   // Bootstrap: if no track is playing, promote the top pending item
-  const bootstrapIfNeeded = useCallback(async (loadedItems: QueueItem[]) => {
+  const bootstrapQueueStartup = useCallback(async (loadedItems: QueueItem[]) => {
+    if (hasBootstrapped.current) return
+
     const isPlaying = loadedItems.some(i => i.status === 'playing')
     const hasPending = loadedItems.some(i => i.status === 'pending')
+
     if (isPlaying || !hasPending) return
-    await promoteToPlaying({ queue: loadedItems, roomId })
+
+    // Mark as bootstrapped BEFORE call to prevent concurrent attempts during async call
+    hasBootstrapped.current = true
+
+    const { error: bootstrapError } = await promoteToPlaying({ queue: loadedItems, roomId })
+    if (bootstrapError) {
+      // If it failed, we might want to allow another attempt later,
+      // but to prevent spamming, we keep it as true for now.
+      console.error('Bootstrap failed:', bootstrapError)
+    }
   }, [roomId])
 
   const loadQueueWithBootstrap = useCallback(async () => {
@@ -40,10 +54,10 @@ export function useQueue(roomId: string, userId: string) {
       setError(fetchError.message)
     } else {
       setItems(data)
-      await bootstrapIfNeeded(data)
+      await bootstrapQueueStartup(data)
     }
     setLoading(false)
-  }, [roomId, bootstrapIfNeeded])
+  }, [roomId, bootstrapQueueStartup])
 
   useEffect(() => {
     if (!roomId) {

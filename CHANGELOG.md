@@ -1,5 +1,21 @@
 # Changelog
 
+## Cycle #12 - 2026-03-19
+
+### Added
+- `playingSince` field to `QueueItem` for accurate real-time track progress sync across clients
+- Comprehensive type coverage for `QueueItem` across lib and test suites
+
+### Fixed
+- Type errors in 9 test files where `playingSince` was missing or incompatible
+- `createRoom` type mismatch in `rooms.test.ts` (missing `username`)
+- `TypeError: supabase.rpc is not a function` in queue tests by adding `rpc` to Supabase mocks
+- `TypeError: refresh is not a function` in `RoomPage.test.tsx` by adding `refresh` to `useQueue` mock
+
+### Changed
+- `addToQueue` now returns `playingSince: null` by default
+- `README.md` updated with latest test coverage stats (210 tests, 25 suites)
+
 ## Cycle #11 - 2026-03-18
 
 ### Added

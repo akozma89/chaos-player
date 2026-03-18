@@ -49,8 +49,9 @@ const makeTrack = (overrides: Partial<QueueItem> = {}): QueueItem => ({
   upvotes: 0,
   downvotes: 0,
   status: 'playing',
+  playingSince: null,
   ...overrides,
-})
+} as QueueItem)
 
 describe('NowPlaying', () => {
   beforeEach(() => {

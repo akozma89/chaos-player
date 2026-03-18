@@ -91,6 +91,7 @@ export async function addToQueue(params: AddToQueueParams): Promise<AddToQueueRe
       upvotes: data.upvotes,
       downvotes: data.downvotes,
       status: data.status,
+      playingSince: data.playing_since ?? null,
     },
     error: null,
   }

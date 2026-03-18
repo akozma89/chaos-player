@@ -55,6 +55,10 @@ describe('RoomPage Orchestration', () => {
       playing: null,
       loading: true,
       error: null,
+      pending: [],
+      refresh: jest.fn(),
+      vote: jest.fn(),
+      advanceQueue: jest.fn(),
     });
 
     render(<RoomPage />);
@@ -71,6 +75,9 @@ describe('RoomPage Orchestration', () => {
       loading: false,
       error: null,
       advanceQueue: jest.fn(),
+      pending: [],
+      refresh: jest.fn(),
+      vote: jest.fn(),
     });
 
     render(<RoomPage />);
@@ -85,7 +92,7 @@ describe('RoomPage Orchestration', () => {
   });
 
   it('calls advanceQueue when track ends', async () => {
-    const mockAdvanceQueue = jest.fn();
+    const mockRefresh = jest.fn();
     (useQueue as jest.Mock).mockReturnValue({
       items: [
         { id: '1', video_id: 'abc', title: 'Test Video', position: 1, status: 'playing' },
@@ -93,7 +100,10 @@ describe('RoomPage Orchestration', () => {
       playing: { id: '1', video_id: 'abc', title: 'Test Video', position: 1, status: 'playing' },
       loading: false,
       error: null,
-      advanceQueue: mockAdvanceQueue,
+      advanceQueue: jest.fn(),
+      pending: [],
+      refresh: mockRefresh,
+      vote: jest.fn(),
     });
 
     render(<RoomPage />);
@@ -106,7 +116,7 @@ describe('RoomPage Orchestration', () => {
       screen.getByTestId('advance-btn').click();
     });
 
-    expect(mockAdvanceQueue).toHaveBeenCalled();
+    expect(mockRefresh).toHaveBeenCalled();
   });
 
   it('shows winner notification toast when track advances to a new track', async () => {

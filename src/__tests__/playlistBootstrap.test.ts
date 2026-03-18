@@ -9,6 +9,7 @@ import type { QueueItem } from '../types'
 jest.mock('../lib/supabase', () => ({
   supabase: {
     from: jest.fn(),
+    rpc: jest.fn(),
     channel: jest.fn(() => ({
       on: jest.fn().mockReturnThis(),
       subscribe: jest.fn(),
@@ -31,8 +32,9 @@ const makeItem = (overrides: Partial<QueueItem>): QueueItem => ({
   upvotes: 0,
   downvotes: 0,
   status: 'pending',
+  playingSince: null,
   ...overrides,
-})
+} as QueueItem)
 
 describe('promoteToPlaying', () => {
   beforeEach(() => {
@@ -41,8 +43,7 @@ describe('promoteToPlaying', () => {
 
   it('promotes highest net-vote pending item to playing when no playing item exists', async () => {
     const { supabase } = require('../lib/supabase')
-    const mockUpdate = jest.fn(() => ({ eq: jest.fn(() => ({ data: null, error: null })) }))
-    supabase.from.mockReturnValue({ update: mockUpdate })
+    supabase.rpc.mockResolvedValue({ data: null, error: null })
 
     const items: QueueItem[] = [
       makeItem({ id: 'a', upvotes: 1, downvotes: 0 }), // net 1
@@ -54,8 +55,9 @@ describe('promoteToPlaying', () => {
 
     expect(result.error).toBeNull()
     expect(result.promotedItem?.id).toBe('b')
-    expect(supabase.from).toHaveBeenCalledWith('queue_items')
-    expect(mockUpdate).toHaveBeenCalledWith({ status: 'playing' })
+    expect(supabase.rpc).toHaveBeenCalledWith('promote_to_playing', {
+      p_room_id: 'room-1',
+    })
   })
 
   it('returns null promotedItem when queue is empty', async () => {
@@ -77,13 +79,9 @@ describe('promoteToPlaying', () => {
     expect(result.error).toBeNull()
   })
 
-  it('returns error when supabase update fails', async () => {
+  it('returns error when supabase rpc fails', async () => {
     const { supabase } = require('../lib/supabase')
-    supabase.from.mockReturnValue({
-      update: jest.fn(() => ({
-        eq: jest.fn(() => ({ data: null, error: { message: 'DB error' } })),
-      })),
-    })
+    supabase.rpc.mockResolvedValue({ data: null, error: { message: 'DB error' } })
 
     const items: QueueItem[] = [makeItem({ id: 'a', upvotes: 2 })]
 
@@ -95,11 +93,8 @@ describe('promoteToPlaying', () => {
   })
 
   it('skips already-playing items when selecting for promotion', async () => {
-    // If someone already playing, pickNextTrack would return null — but promoteToPlaying
-    // should still select a pending item if there's no playing item (queue of only pending)
     const { supabase } = require('../lib/supabase')
-    const mockUpdate = jest.fn(() => ({ eq: jest.fn(() => ({ data: null, error: null })) }))
-    supabase.from.mockReturnValue({ update: mockUpdate })
+    supabase.rpc.mockResolvedValue({ data: null, error: null })
 
     const items: QueueItem[] = [
       makeItem({ id: 'x', upvotes: 3, addedAt: '2026-01-01T00:00:01Z' }),

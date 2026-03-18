@@ -62,7 +62,7 @@ export function YoutubePlayer({ videoId, isHost, playingSince, onEnded, onSkip }
     return () => {
       player?.destroy()
     }
-  }, [videoId])
+  }, [videoId, playingSince])
 
   return (
     <div

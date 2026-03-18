@@ -84,6 +84,7 @@ describe('Supabase Schema Validation', () => {
         upvotes: 5,
         downvotes: 1,
         status: 'pending',
+        playingSince: null,
       }
       expect(validateQueueItem(item)).toBe(true)
     })
@@ -103,6 +104,7 @@ describe('Supabase Schema Validation', () => {
         upvotes: 0,
         downvotes: 0,
         status: 'deleted', // invalid status
+        playingSince: null,
       }
       expect(validateQueueItem(item)).toBe(false)
     })
