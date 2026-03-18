@@ -1,5 +1,13 @@
 # Changelog
 
+## Cycle #5 - 2026-03-18
+
+### Added
+- Dynamic Room Page (`src/app/room/[code]/page.tsx`) — orchestrates YouTube player, queue, leaderboard, and moderation components
+- Real-time room state orchestration — combined auth, room metadata, and queue subscriptions
+- Integrated auto-advance flow — track ends triggers next track from queue automatically
+- 3 new tests for Room Page; total now 116 tests across 15 suites
+
 ## Cycle #4 - 2026-03-18
 
 ### Added

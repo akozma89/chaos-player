@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { getQueueItems, castVote, computeQueueOrder } from '../lib/queue'
+import { advanceQueue as libAdvanceQueue } from '../lib/autoAdvance'
 import type { QueueItem } from '../types'
 
 export function useQueue(roomId: string, userId: string) {
@@ -15,7 +16,8 @@ export function useQueue(roomId: string, userId: string) {
     if (fetchError) {
       setError(fetchError.message)
     } else {
-      setItems(computeQueueOrder(data))
+      // items will contain playing and pending items
+      setItems(data)
     }
     setLoading(false)
   }, [roomId])
@@ -47,16 +49,14 @@ export function useQueue(roomId: string, userId: string) {
     async (queueItemId: string, type: 'upvote' | 'downvote') => {
       // Optimistic update
       setItems((prev) =>
-        computeQueueOrder(
-          prev.map((item) => {
-            if (item.id !== queueItemId) return item
-            return {
-              ...item,
-              upvotes: type === 'upvote' ? item.upvotes + 1 : item.upvotes,
-              downvotes: type === 'downvote' ? item.downvotes + 1 : item.downvotes,
-            }
-          })
-        )
+        prev.map((item) => {
+          if (item.id !== queueItemId) return item
+          return {
+            ...item,
+            upvotes: type === 'upvote' ? item.upvotes + 1 : item.upvotes,
+            downvotes: type === 'downvote' ? item.downvotes + 1 : item.downvotes,
+          }
+        })
       )
 
       const { error: voteError } = await castVote({ queueItemId, userId, type })
@@ -68,5 +68,35 @@ export function useQueue(roomId: string, userId: string) {
     [userId, loadQueue]
   )
 
-  return { items, loading, error, vote, refresh: loadQueue }
+  const advanceQueue = useCallback(async () => {
+    const currentPlaying = items.find(i => i.status === 'playing')
+    if (!currentPlaying) return
+
+    const { error: advanceError } = await libAdvanceQueue({
+      currentItemId: currentPlaying.id,
+      queue: items,
+      roomId
+    })
+
+    if (advanceError) {
+      setError(advanceError.message)
+    } else {
+      await loadQueue()
+    }
+  }, [roomId, items, loadQueue])
+
+  // Split items for UI
+  const playing = items.find(i => i.status === 'playing') || null
+  const pending = computeQueueOrder(items.filter(i => i.status === 'pending'))
+
+  return { 
+    items, 
+    playing, 
+    pending, 
+    loading, 
+    error, 
+    vote, 
+    advanceQueue,
+    refresh: loadQueue 
+  }
 }

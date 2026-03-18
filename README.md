@@ -89,7 +89,7 @@ npm test
 npm test:watch
 ```
 
-**Test Coverage (Cycle #4):** 113 tests across 14 suites — schema validation, room management, queue operations, Queue UI, YouTube search, YouTube player, auto-advance, YouTube error handling, queue integration, NowPlaying, leaderboard, moderation, Leaderboard UI, and ModerationPanel UI.
+**Test Coverage (Cycle #5):** 116 tests across 15 suites — schema validation, room management, queue operations, Queue UI, YouTube search, YouTube player, auto-advance, YouTube error handling, queue integration, NowPlaying, leaderboard, moderation, Leaderboard UI, ModerationPanel UI, and Dynamic Room Page.
 
 ### Building for Production
 
