@@ -1,5 +1,19 @@
 # Changelog
 
+## Cycle #11 - 2026-03-18
+
+### Added
+- `computeVoteDelta` pure function in `src/lib/queue.ts` for correct vote-flip delta computation
+- `VoteButton` active prop with neon-blue/neon-pink highlight for current vote state
+- YouTubeSearch: Escape key dismiss, outside-click dismiss via containerRef + mousedown listener, clear (×) button
+
+### Fixed
+- Votes table subscription 400 error (missing room_id column) — removed votes subscription; queue_items subscription is sufficient
+- Optimistic vote update ignored prior vote direction — fixed with `computeVoteDelta` + `userVotes` ref
+
+### Changed
+- YouTubeSearch dropdown now uses `z-50` for correct layering over other UI elements
+
 ## Cycle #10 - 2026-03-18
 
 ### Added

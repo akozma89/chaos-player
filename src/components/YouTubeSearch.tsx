@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import { searchYouTubeWithErrors, YouTubeSearchResult, YouTubeError } from '../lib/youtube'
 import { addToQueue } from '../lib/queue'
@@ -19,6 +19,7 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
   const [addedId, setAddedId] = useState<string | null>(null)
   const [addingId, setAddingId] = useState<string | null>(null)
   const debouncedQuery = useDebounce(query, 500)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     async function search() {
@@ -37,6 +38,36 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
     }
     search()
   }, [debouncedQuery])
+
+  // Escape key dismisses results
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setResults([])
+        setError(null)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  // Outside-click dismisses results
+  useEffect(() => {
+    function handleMouseDown(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setResults([])
+        setError(null)
+      }
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    return () => document.removeEventListener('mousedown', handleMouseDown)
+  }, [])
+
+  const handleClear = useCallback(() => {
+    setQuery('')
+    setResults([])
+    setError(null)
+  }, [])
 
   const handleAdd = useCallback(
     async (result: YouTubeSearchResult) => {
@@ -69,19 +100,34 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
   }
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <div className="relative">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setResults([])
+              setError(null)
+            }
+          }}
           placeholder="Search YouTube..."
-          className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-neon-blue/50 focus:ring-1 focus:ring-neon-blue/20 transition"
+          className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-neon-blue/50 focus:ring-1 focus:ring-neon-blue/20 transition pr-16"
         />
         {isSearching && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          <div className="absolute right-8 top-1/2 -translate-y-1/2">
             <div className="w-4 h-4 border-2 border-neon-blue/30 border-t-neon-blue rounded-full animate-spin" />
           </div>
+        )}
+        {query && (
+          <button
+            aria-label="Clear search"
+            onClick={handleClear}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition text-lg leading-none"
+          >
+            ×
+          </button>
         )}
       </div>
 
@@ -92,7 +138,7 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
       )}
 
       {results.length > 0 && (
-        <ul className="absolute z-10 w-full mt-1 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+        <ul className="absolute z-50 w-full mt-1 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden">
           {results.map((result) => {
             const isAdded = addedId === result.sourceId
             const isAdding = addingId === result.sourceId

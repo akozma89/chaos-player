@@ -6,6 +6,27 @@ import { supabase } from './supabase'
 import { TOKEN_COSTS } from './schema'
 import type { QueueItem, Vote } from '../types'
 
+// Compute optimistic vote count deltas given new vote and prior vote for same item
+export function computeVoteDelta(
+  newVote: 'upvote' | 'downvote',
+  prevVote: 'upvote' | 'downvote' | undefined
+): { upvoteDelta: number; downvoteDelta: number } {
+  if (!prevVote) {
+    return {
+      upvoteDelta: newVote === 'upvote' ? 1 : 0,
+      downvoteDelta: newVote === 'downvote' ? 1 : 0,
+    }
+  }
+  if (prevVote === newVote) {
+    return { upvoteDelta: 0, downvoteDelta: 0 }
+  }
+  // Vote flip
+  return {
+    upvoteDelta: newVote === 'upvote' ? 1 : -1,
+    downvoteDelta: newVote === 'downvote' ? 1 : -1,
+  }
+}
+
 // Sort pending items by net votes (upvotes - downvotes), FIFO for ties
 export function computeQueueOrder(items: QueueItem[]): QueueItem[] {
   return items

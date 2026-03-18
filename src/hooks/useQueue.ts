@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { getQueueItems, castVote, computeQueueOrder } from '../lib/queue'
+import { getQueueItems, castVote, computeQueueOrder, computeVoteDelta } from '../lib/queue'
 import { advanceQueue as libAdvanceQueue, promoteToPlaying } from '../lib/autoAdvance'
 import type { QueueItem } from '../types'
 
@@ -11,6 +11,8 @@ export function useQueue(roomId: string, userId: string) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const hasBootstrapped = useRef(false)
+  // Track user's current vote per queue item for optimistic delta computation
+  const userVotes = useRef<Map<string, 'upvote' | 'downvote'>>(new Map())
 
   const loadQueue = useCallback(async () => {
     if (!roomId) return
@@ -57,16 +59,13 @@ export function useQueue(roomId: string, userId: string) {
     loadQueueWithBootstrap()
 
     // Subscribe to realtime changes (no bootstrap on updates)
+    // Note: only subscribe to queue_items changes — votes are reflected in queue_items.upvotes/downvotes
+    // via castVote, so a separate votes subscription (which lacks room_id) is unnecessary and error-prone.
     const channel = supabase
       .channel(`queue:${roomId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'queue_items', filter: `room_id=eq.${roomId}` },
-        () => loadQueue()
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'votes' },
         () => loadQueue()
       )
       .subscribe()
@@ -78,21 +77,29 @@ export function useQueue(roomId: string, userId: string) {
 
   const vote = useCallback(
     async (queueItemId: string, type: 'upvote' | 'downvote') => {
-      // Optimistic update
+      const prevVote = userVotes.current.get(queueItemId)
+      const { upvoteDelta, downvoteDelta } = computeVoteDelta(type, prevVote)
+
+      // Optimistic update using delta (handles vote flips correctly)
       setItems((prev) =>
         prev.map((item) => {
           if (item.id !== queueItemId) return item
           return {
             ...item,
-            upvotes: type === 'upvote' ? item.upvotes + 1 : item.upvotes,
-            downvotes: type === 'downvote' ? item.downvotes + 1 : item.downvotes,
+            upvotes: item.upvotes + upvoteDelta,
+            downvotes: item.downvotes + downvoteDelta,
           }
         })
       )
 
+      // Record the new vote direction immediately
+      userVotes.current.set(queueItemId, type)
+
       const { error: voteError } = await castVote({ queueItemId, userId, type })
       if (voteError) {
         // Revert on error
+        userVotes.current.set(queueItemId, prevVote as 'upvote' | 'downvote')
+        if (!prevVote) userVotes.current.delete(queueItemId)
         await loadQueue()
       }
     },
