@@ -1,5 +1,18 @@
 # Changelog
 
+## Cycle #2 - 2026-03-18
+
+### Added
+- YouTube search utility with YouTube Data API v3 (`src/lib/youtube.ts`)
+- YouTube IFrame API loader with lifecycle management (`src/lib/youtubeIframe.ts`)
+- `YoutubePlayer` React component with state-change handling (`src/components/YoutubePlayer.tsx`)
+- `NowPlaying` component showing current track with controls (`src/components/NowPlaying.tsx`)
+- Auto-advance logic: advances queue when track ends (`src/lib/autoAdvance.ts`)
+- 21 unit tests for YouTube integration (search, player, auto-advance)
+
+### Fixed
+- `InstanceType` instead of `ReturnType` for `window.YT.Player` constructor type
+
 ## Cycle #1 - 2026-03-18
 
 ### Added

@@ -88,7 +88,7 @@ npm test
 npm test:watch
 ```
 
-**Test Coverage (Cycle #1):** 35 tests across 4 suites — schema validation, room management, queue operations, and Queue UI component.
+**Test Coverage (Cycle #2):** 56 tests across 7 suites — schema validation, room management, queue operations, Queue UI, YouTube search, YouTube player, and auto-advance.
 
 ### Building for Production
 
