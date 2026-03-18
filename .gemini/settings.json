@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "aethelgard-memory": {
+      "command": "node",
+      "args": [
+        "/Users/arpad.kozma/AntigravityProjects/aethelgard/mcp/server.js"
+      ]
+    }
+  }
+}
