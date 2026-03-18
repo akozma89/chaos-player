@@ -170,6 +170,28 @@ export async function getQueueItems(roomId: string): Promise<GetQueueResult> {
   return { data: items, error: null }
 }
 
+interface GetVotesResult {
+  data: Record<string, 'upvote' | 'downvote'>
+  error: Error | null
+}
+
+export async function getUserVotes(roomId: string, userId: string): Promise<GetVotesResult> {
+  const { data, error } = await supabase
+    .from('votes')
+    .select('queue_item_id, type, queue_items!inner(room_id)')
+    .eq('user_id', userId)
+    .eq('queue_items.room_id', roomId)
+
+  if (error) return { data: {}, error: new Error(error.message) }
+
+  const votesMap: Record<string, 'upvote' | 'downvote'> = {}
+  ;(data as any[]).forEach((v) => {
+    votesMap[v.queue_item_id] = v.type as 'upvote' | 'downvote'
+  })
+
+  return { data: votesMap, error: null }
+}
+
 interface SkipTrackParams {
   queueItemId: string
   userId: string

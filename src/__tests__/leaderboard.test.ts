@@ -53,7 +53,7 @@ describe('computeLeaderboard', () => {
     const tokenSpends: Record<string, number> = { u1: 5, u2: 3, u3: 1 }
     const voteCounts: Record<string, number> = { u1: 2, u2: 2, u3: 2 }
 
-    const board = computeLeaderboard(sessions, tokenSpends, voteCounts)
+    const board = computeLeaderboard(sessions, tokenSpends, {}, voteCounts)
 
     expect(board[0].userId).toBe('u1') // 5 tokens
     expect(board[1].userId).toBe('u2') // 3 tokens
@@ -69,7 +69,7 @@ describe('computeLeaderboard', () => {
     const tokenSpends: Record<string, number> = { u1: 5, u2: 5 }
     const voteCounts: Record<string, number> = { u1: 3, u2: 7 }
 
-    const board = computeLeaderboard(sessions, tokenSpends, voteCounts)
+    const board = computeLeaderboard(sessions, tokenSpends, {}, voteCounts)
 
     expect(board[0].userId).toBe('u2') // more votes
     expect(board[1].userId).toBe('u1')
@@ -81,23 +81,23 @@ describe('computeLeaderboard', () => {
       { userId: 'u2' },
       { userId: 'u3' },
     ])
-    const board = computeLeaderboard(sessions, {}, {})
+    const board = computeLeaderboard(sessions, {}, {}, {})
     expect(board.map((e) => e.rank)).toEqual([1, 2, 3])
   })
 
   it('computes engagement score as tokensSpent + voteCount', () => {
     const sessions = makeSessions([{ userId: 'u1', username: 'Alice' }])
-    const board = computeLeaderboard(sessions, { u1: 4 }, { u1: 3 })
+    const board = computeLeaderboard(sessions, { u1: 4 }, {}, { u1: 3 })
     expect(board[0].engagementScore).toBe(7)
   })
 
   it('returns empty array for no sessions', () => {
-    expect(computeLeaderboard([], {}, {})).toEqual([])
+    expect(computeLeaderboard([], {}, {}, {})).toEqual([])
   })
 
   it('defaults to 0 for missing spend/vote data', () => {
     const sessions = makeSessions([{ userId: 'u1', username: 'Alice' }])
-    const board = computeLeaderboard(sessions, {}, {})
+    const board = computeLeaderboard(sessions, {}, {}, {})
     expect(board[0].tokensSpent).toBe(0)
     expect(board[0].voteCount).toBe(0)
     expect(board[0].engagementScore).toBe(0)
@@ -108,7 +108,7 @@ describe('computeLeaderboard', () => {
       { userId: 'u1', username: 'Alice', isHost: true },
       { userId: 'u2', username: 'Bob', isHost: false },
     ])
-    const board = computeLeaderboard(sessions, { u1: 10, u2: 5 }, {})
+    const board = computeLeaderboard(sessions, { u1: 10, u2: 5 }, {}, {})
     expect(board.every((e) => e.userId !== 'u1')).toBe(true)
     expect(board[0].userId).toBe('u2')
   })
@@ -172,6 +172,52 @@ describe('getLeaderboard', () => {
     // u1 spent 8 tokens, u2 spent 2 => u1 ranked first
     expect(result.data![0].userId).toBe('u1')
     expect(result.data![0].tokensSpent).toBe(8)
+  })
+
+  it('returns leaderboard entries for a room, separating earned vs spent tokens', async () => {
+    const { supabase } = require('../lib/supabase')
+
+    const mockSessions = [
+      { id: 's1', room_id: 'room-1', user_id: 'u1', username: 'Alice', joined_at: '', tokens: 7, is_host: false },
+    ]
+    const mockTokens = [
+      { user_id: 'u1', amount: 5, action: 'skip' },
+      { user_id: 'u1', amount: 3, action: 'earn' },
+    ]
+    const mockVotes = [
+      { user_id: 'u1' },
+    ]
+
+    supabase.from.mockImplementation((table: string) => {
+      if (table === 'sessions') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({ data: mockSessions, error: null })),
+          })),
+        }
+      }
+      if (table === 'tokens') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({ data: mockTokens, error: null })),
+          })),
+        }
+      }
+      if (table === 'votes') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({ data: mockVotes, error: null })),
+          })),
+        }
+      }
+      return { select: jest.fn(() => ({ eq: jest.fn(() => ({ data: [], error: null })) })) }
+    })
+
+    const result = await getLeaderboard('room-1')
+
+    expect(result.error).toBeNull()
+    expect(result.data![0].tokensSpent).toBe(5)
+    expect(result.data![0].tokensEarned).toBe(3)
   })
 
   it('returns error when sessions fetch fails', async () => {

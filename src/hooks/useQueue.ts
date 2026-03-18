@@ -2,16 +2,17 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { getQueueItems, castVote, computeQueueOrder, computeVoteDelta } from '../lib/queue'
+import { getQueueItems, castVote, computeQueueOrder, computeVoteDelta, getUserVotes } from '../lib/queue'
 import { advanceQueue as libAdvanceQueue, promoteToPlaying } from '../lib/autoAdvance'
+import { checkAndAwardCrowdPleaser } from '../lib/tokenEarn'
 import type { QueueItem } from '../types'
 
 export function useQueue(roomId: string, userId: string) {
   const [items, setItems] = useState<QueueItem[]>([])
+  const [userVotes, setUserVotes] = useState<Record<string, 'upvote' | 'downvote'>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  // Track user's current vote per queue item for optimistic delta computation
-  const userVotes = useRef<Map<string, 'upvote' | 'downvote'>>(new Map())
+  const [recentReward, setRecentReward] = useState<{ amount: number; userId: string; queueItemId: string } | null>(null)
   // Guard to ensure we only ever trigger bootstrap once per session
   const hasBootstrapped = useRef(false)
 
@@ -26,6 +27,16 @@ export function useQueue(roomId: string, userId: string) {
     }
     setLoading(false)
   }, [roomId])
+
+  const loadUserVotes = useCallback(async () => {
+    if (!roomId || !userId) return
+    const { data, error: fetchError } = await getUserVotes(roomId, userId)
+    if (fetchError) {
+      console.error('Failed to load user votes:', fetchError)
+    } else {
+      setUserVotes(data)
+    }
+  }, [roomId, userId])
 
   // Bootstrap: if no track is playing, promote the top pending item
   const bootstrapQueueStartup = useCallback(async (loadedItems: QueueItem[]) => {
@@ -67,6 +78,7 @@ export function useQueue(roomId: string, userId: string) {
 
     // Initial load with bootstrap check
     loadQueueWithBootstrap()
+    loadUserVotes()
 
     // Subscribe to realtime changes — also runs bootstrap so newly added tracks auto-start
     // Note: only subscribe to queue_items — votes are reflected via castVote RPC, no separate votes subscription needed.
@@ -82,11 +94,11 @@ export function useQueue(roomId: string, userId: string) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [roomId, loadQueueWithBootstrap])
+  }, [roomId, loadQueueWithBootstrap, loadUserVotes])
 
   const vote = useCallback(
     async (queueItemId: string, type: 'upvote' | 'downvote') => {
-      const prevVote = userVotes.current.get(queueItemId)
+      const prevVote = userVotes[queueItemId]
       const { upvoteDelta, downvoteDelta } = computeVoteDelta(type, prevVote)
 
       // Optimistic update using delta (handles vote flips correctly)
@@ -101,18 +113,37 @@ export function useQueue(roomId: string, userId: string) {
         })
       )
 
-      // Record the new vote direction immediately
-      userVotes.current.set(queueItemId, type)
+      // Record the new vote direction immediately in state
+      setUserVotes((prev) => ({
+        ...prev,
+        [queueItemId]: type,
+      }))
 
       const { error: voteError } = await castVote({ queueItemId, userId, type })
       if (voteError) {
         // Revert on error
-        userVotes.current.set(queueItemId, prevVote as 'upvote' | 'downvote')
-        if (!prevVote) userVotes.current.delete(queueItemId)
+        setUserVotes((prev) => {
+          const next = { ...prev }
+          if (prevVote) next[queueItemId] = prevVote
+          else delete next[queueItemId]
+          return next
+        })
         await loadQueue()
+      } else {
+        // Successful vote: check for crowd pleaser reward
+        const rewardResult = await checkAndAwardCrowdPleaser({ queueItemId, roomId })
+        if (rewardResult.awarded) {
+          setRecentReward({
+            amount: rewardResult.tokensAwarded,
+            userId: rewardResult.userId!,
+            queueItemId: queueItemId
+          })
+          // Auto-clear reward notification after 5s
+          setTimeout(() => setRecentReward(null), 5000)
+        }
       }
     },
-    [userId, loadQueue]
+    [userId, roomId, loadQueue, userVotes]
   )
 
   const advanceQueue = useCallback(async () => {
@@ -143,6 +174,8 @@ export function useQueue(roomId: string, userId: string) {
     loading, 
     error, 
     vote, 
+    userVotes,
+    recentReward,
     advanceQueue,
     refresh: loadQueue 
   }

@@ -14,6 +14,7 @@ jest.mock('../hooks/useDebounce', () => ({
 }))
 jest.mock('next/image', () => ({
   __esModule: true,
+  // eslint-disable-next-line @next/next/no-img-element
   default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
 }))
 

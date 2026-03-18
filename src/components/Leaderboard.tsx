@@ -66,6 +66,10 @@ export default function Leaderboard({ roomId }: LeaderboardProps) {
                   <span className="text-yellow-400">⚡</span>
                   {entry.tokensSpent}
                 </span>
+                <span title="Tokens earned" className="flex items-center gap-1">
+                  <span className="text-neon-blue">💎</span>
+                  {entry.tokensEarned}
+                </span>
                 <span title="Votes cast" className="flex items-center gap-1">
                   <span className="text-green-400">↑</span>
                   {entry.voteCount}

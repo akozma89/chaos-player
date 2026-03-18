@@ -18,6 +18,7 @@ jest.mock('../lib/supabase', () => ({
 jest.mock('../lib/queue', () => ({
   getQueueItems: jest.fn(),
   castVote: jest.fn(),
+  getUserVotes: jest.fn().mockResolvedValue({ data: {}, error: null }),
   computeQueueOrder: jest.fn(items => items),
   computeVoteDelta: jest.fn(() => ({ upvoteDelta: 0, downvoteDelta: 0 })),
 }))

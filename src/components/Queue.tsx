@@ -5,6 +5,7 @@ import type { QueueItem } from '../types'
 
 interface Props {
   items: QueueItem[];
+  userVotes?: Record<string, 'upvote' | 'downvote'>;
   loading: boolean;
   error: string | null;
   vote: (itemId: string, type: 'upvote' | 'downvote') => void;
@@ -17,7 +18,7 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-export function Queue({ items, loading, error, vote }: Props) {
+export function Queue({ items, userVotes = {}, loading, error, vote }: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12 text-gray-500">
@@ -77,12 +78,14 @@ export function Queue({ items, loading, error, vote }: Props) {
               count={item.upvotes}
               onClick={() => vote(item.id, 'upvote')}
               disabled={item.status !== 'pending'}
+              active={userVotes[item.id] === 'upvote'}
             />
             <VoteButton
               type="downvote"
               count={item.downvotes}
               onClick={() => vote(item.id, 'downvote')}
               disabled={item.status !== 'pending'}
+              active={userVotes[item.id] === 'downvote'}
             />
           </div>
         </li>

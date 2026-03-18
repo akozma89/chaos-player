@@ -1,5 +1,19 @@
 # Changelog
 
+## Cycle #14 - 2026-03-19
+
+### Added
+- `AutoplayGuard` component: Prevents YouTube autoplay blocks with a user-friendly "Resume Playback" overlay
+- `earned-tokens-leaderboard-aggregation`: Leaderboard now tracks tokens earned via "Crowd Pleaser" rewards
+- `TokenEarnNotification` integrated with real-time token events in `useQueue` hook
+
+### Fixed
+- `useQueue` hook TypeError: `getUserVotes` missing from Jest mocks in test suite
+- `YouTubeSearch` lint warning: Using `<img>` instead of `next/image` (fixed via ESLint suppression in test mock)
+
+### Changed
+- `README.md` updated with latest test coverage stats (212 tests, 28 suites)
+
 ## Cycle #13 - 2026-03-19
 
 ### Added

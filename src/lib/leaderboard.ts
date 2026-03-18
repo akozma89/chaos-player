@@ -10,6 +10,7 @@ export interface LeaderboardEntry {
   userId: string
   username: string
   tokensSpent: number
+  tokensEarned: number
   voteCount: number
   engagementScore: number
 }
@@ -26,18 +27,21 @@ interface GetLeaderboardResult {
 export function computeLeaderboard(
   sessions: Session[],
   tokenSpends: Record<string, number>,
+  tokenEarns: Record<string, number>,
   voteCounts: Record<string, number>
 ): LeaderboardEntry[] {
   return sessions
     .filter((s) => !s.isHost)
     .map((s) => {
       const tokensSpent = tokenSpends[s.userId] ?? 0
+      const tokensEarned = tokenEarns[s.userId] ?? 0
       const voteCount = voteCounts[s.userId] ?? 0
       return {
         rank: 0, // assigned after sort
         userId: s.userId,
         username: s.username,
         tokensSpent,
+        tokensEarned,
         voteCount,
         engagementScore: tokensSpent + voteCount,
       }
@@ -73,17 +77,25 @@ export async function getLeaderboard(roomId: string): Promise<GetLeaderboardResu
     isHost: row.is_host as boolean,
   }))
 
-  // Fetch token spends for room
+  // Fetch token ledger for room
   const { data: tokensData } = await supabase
     .from('tokens')
     .select()
     .eq('room_id', roomId)
 
   const tokenSpends: Record<string, number> = {}
+  const tokenEarns: Record<string, number> = {}
   for (const t of tokensData ?? []) {
     const row = t as Record<string, unknown>
     const uid = row.user_id as string
-    tokenSpends[uid] = (tokenSpends[uid] ?? 0) + (row.amount as number)
+    const amount = row.amount as number
+    const action = row.action as string
+    
+    if (action === 'earn') {
+      tokenEarns[uid] = (tokenEarns[uid] ?? 0) + amount
+    } else {
+      tokenSpends[uid] = (tokenSpends[uid] ?? 0) + amount
+    }
   }
 
   // Fetch votes for room via queue_items join (votes has no room_id column)
@@ -100,7 +112,7 @@ export async function getLeaderboard(roomId: string): Promise<GetLeaderboardResu
   }
 
   return {
-    data: computeLeaderboard(sessions, tokenSpends, voteCounts),
+    data: computeLeaderboard(sessions, tokenSpends, tokenEarns, voteCounts),
     error: null,
   }
 }

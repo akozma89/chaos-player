@@ -10,6 +10,8 @@ import Leaderboard from '../../../components/Leaderboard';
 import { NowPlaying } from '../../../components/NowPlaying';
 import { WinnerToast } from '../../../components/WinnerToast';
 import YouTubeSearch from '../../../components/YouTubeSearch';
+import { AutoplayGuard } from '../../../components/AutoplayGuard';
+import { TokenEarnNotification } from '../../../components/TokenEarnNotification';
 
 const RoomPage = () => {
   const { code } = useParams();
@@ -18,6 +20,7 @@ const RoomPage = () => {
   const [roomId, setRoomId] = useState<string | null>(null);
   const lastTrackIdRef = useRef<string | null>(null);
   const [showWinnerToast, setShowWinnerToast] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -46,7 +49,7 @@ const RoomPage = () => {
     initAuth();
   }, [code, router]);
 
-  const { playing, items, pending, loading, error, vote, refresh } = useQueue(roomId || '', userId || '');
+  const { playing, items, pending, loading, error, vote, userVotes, recentReward, refresh } = useQueue(roomId || '', userId || '');
 
   // Winner Notification Logic
   // Use a ref for lastTrackId so updates don't trigger re-renders/effect re-runs.
@@ -88,6 +91,19 @@ const RoomPage = () => {
 
   return (
     <div className="min-h-screen bg-black text-white p-4 md:p-8">
+      {!hasInteracted && (
+        <AutoplayGuard onInteract={() => {
+          setHasInteracted(true);
+          refresh();
+        }} />
+      )}
+      {recentReward && (
+        <TokenEarnNotification 
+          amount={recentReward.amount} 
+          userId={recentReward.userId} 
+          currentUserId={userId} 
+        />
+      )}
       {showWinnerToast && playing && (
         <WinnerToast 
           winner={playing} 
@@ -142,7 +158,7 @@ const RoomPage = () => {
                 <span className="w-1.5 h-5 bg-neon-green rounded-full block" />
                 UP NEXT
               </h2>
-              <Queue items={pending} loading={loading} error={error} vote={vote} />
+              <Queue items={pending} userVotes={userVotes} loading={loading} error={error} vote={vote} />
             </section>
 
             <section className="bg-zinc-900/50 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
