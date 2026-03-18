@@ -1,5 +1,17 @@
 # Changelog
 
+## Cycle #4 - 2026-03-18
+
+### Added
+- Leaderboard service (`src/lib/leaderboard.ts`) — per-session rankings by tokens spent and votes cast with real-time Supabase subscription
+- Moderation service (`src/lib/moderation.ts`) — host controls: mute user, remove user, force-skip current track
+- `<Leaderboard>` React component with real-time updates and loading/empty states
+- `<ModerationPanel>` React component with mute/remove/skip actions and confirmation guards
+- 37 new tests (21 unit + 16 accessibility/UI); total now 113 tests across 14 suites
+
+### Fixed
+- Removed unused `LeaderboardEntry` type import (TypeScript strict-mode compliance)
+
 ## Cycle #3 - 2026-03-18
 
 ### Added

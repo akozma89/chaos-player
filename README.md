@@ -8,7 +8,8 @@ Democratic, gamified collaborative music player for social gatherings, remote te
 - **Token Economy**: Skip, stop, or boost songs with earned tokens
 - **Real-time Sync**: Live updates across all participants
 - **Anonymous Join**: QR code or link-based instant access
-- **Host Controls**: Admins manage room and moderate if needed
+- **Host Controls**: Admins manage room, mute/remove users, and force-skip tracks
+- **Leaderboard**: Real-time session rankings by tokens spent and votes cast
 - **YouTube Integration**: Access millions of songs instantly
 
 ## Tech Stack
@@ -88,7 +89,7 @@ npm test
 npm test:watch
 ```
 
-**Test Coverage (Cycle #3):** 76 tests across 10 suites — schema validation, room management, queue operations, Queue UI, YouTube search, YouTube player, auto-advance, YouTube error handling, queue integration, and NowPlaying.
+**Test Coverage (Cycle #4):** 113 tests across 14 suites — schema validation, room management, queue operations, Queue UI, YouTube search, YouTube player, auto-advance, YouTube error handling, queue integration, NowPlaying, leaderboard, moderation, Leaderboard UI, and ModerationPanel UI.
 
 ### Building for Production
 
