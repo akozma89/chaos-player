@@ -1,12 +1,13 @@
 'use client'
 
-import { useQueue } from '../hooks/useQueue'
 import { VoteButton } from './VoteButton'
 import type { QueueItem } from '../types'
 
 interface Props {
-  roomId: string
-  userId: string
+  items: QueueItem[];
+  loading: boolean;
+  error: string | null;
+  vote: (itemId: string, type: 'upvote' | 'downvote') => void;
   onSkip?: (item: QueueItem) => void
 }
 
@@ -16,9 +17,7 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-export function Queue({ roomId, userId }: Props) {
-  const { items, loading, error, vote } = useQueue(roomId, userId)
-
+export function Queue({ items, loading, error, vote }: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12 text-gray-500">

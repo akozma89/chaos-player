@@ -4,21 +4,32 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQueue } from '../../../hooks/useQueue';
 import { getCurrentUser, signInAnonymously } from '../../../lib/auth';
+import { getRoomByCode } from '../../../lib/rooms';
 import { Queue } from '../../../components/Queue';
 import Leaderboard from '../../../components/Leaderboard';
 import { NowPlaying } from '../../../components/NowPlaying';
 import { WinnerToast } from '../../../components/WinnerToast';
+import YouTubeSearch from '../../../components/YouTubeSearch';
 
 const RoomPage = () => {
   const { code } = useParams();
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
+  const [roomId, setRoomId] = useState<string | null>(null);
   const [lastTrackId, setLastTrackId] = useState<string | null>(null);
   const [showWinnerToast, setShowWinnerToast] = useState(false);
-  const roomId = code as string;
 
   useEffect(() => {
     const initAuth = async () => {
+      // Resolve room UUID from the 6-char code in the URL
+      const { data: room, error: roomError } = await getRoomByCode(code as string);
+      if (roomError || !room) {
+        console.error('Room not found:', roomError);
+        router.push('/');
+        return;
+      }
+      setRoomId(room.id);
+
       let user = await getCurrentUser();
       if (!user) {
         const { user: newUser, error } = await signInAnonymously();
@@ -33,9 +44,9 @@ const RoomPage = () => {
       }
     };
     initAuth();
-  }, []);
+  }, [code, router]);
 
-  const { playing, items, loading, error, advanceQueue } = useQueue(roomId, userId || '');
+  const { playing, items, pending, loading, error, vote, advanceQueue } = useQueue(roomId || '', userId || '');
 
   // Winner Notification Logic
   useEffect(() => {
@@ -52,11 +63,11 @@ const RoomPage = () => {
     return;
   }, [playing, lastTrackId]);
 
-  if (!userId || loading) {
+  if (!userId || !roomId || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black text-white">
         <div className="text-2xl animate-pulse text-neon-blue">
-          {!userId ? 'Authenticating...' : 'Loading Room...'}
+          {!roomId ? 'Finding Room...' : !userId ? 'Authenticating...' : 'Loading Room...'}
         </div>
       </div>
     );
@@ -115,10 +126,18 @@ const RoomPage = () => {
           <div className="space-y-8">
             <section className="bg-zinc-900/50 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <span className="w-1.5 h-5 bg-neon-blue rounded-full block" />
+                ADD TRACK
+              </h2>
+              <YouTubeSearch roomId={roomId} userId={userId} />
+            </section>
+
+            <section className="bg-zinc-900/50 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                 <span className="w-1.5 h-5 bg-neon-green rounded-full block" />
                 UP NEXT
               </h2>
-              <Queue roomId={roomId} userId={userId} />
+              <Queue items={pending} loading={loading} error={error} vote={vote} />
             </section>
 
             <section className="bg-zinc-900/50 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">

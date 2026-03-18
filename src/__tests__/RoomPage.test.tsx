@@ -2,13 +2,15 @@ import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import RoomPage from '../app/room/[code]/page';
 import { useQueue } from '../hooks/useQueue';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { getCurrentUser, signInAnonymously } from '../lib/auth';
+import { getRoomByCode } from '../lib/rooms';
 
 // Mock dependencies
 jest.mock('../hooks/useQueue');
 jest.mock('next/navigation');
 jest.mock('../lib/auth');
+jest.mock('../lib/rooms');
 
 jest.mock('../components/NowPlaying', () => ({
   NowPlaying: ({ currentTrack, onTrackChange }: any) => (
@@ -28,14 +30,23 @@ jest.mock('../components/Leaderboard', () => ({
   default: () => <div data-testid="mock-leaderboard">Mock Leaderboard</div>,
 }));
 
+jest.mock('../components/YouTubeSearch', () => ({
+  __esModule: true,
+  default: () => <div data-testid="mock-youtube-search">Mock YouTubeSearch</div>,
+}));
+
 describe('RoomPage Orchestration', () => {
   const mockParams = { code: 'TEST12' };
   const mockUser = { id: 'user-123' };
-  
+  const mockRoom = { id: 'room-uuid', code: 'TEST12', name: 'Test Room' };
+  const mockPush = jest.fn();
+
   beforeEach(() => {
     (useParams as jest.Mock).mockReturnValue(mockParams);
+    (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
     (getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
     (signInAnonymously as jest.Mock).mockResolvedValue({ user: mockUser, error: null });
+    (getRoomByCode as jest.Mock).mockResolvedValue({ data: mockRoom, error: null });
   });
 
   it('renders authenticating state initially', async () => {
@@ -47,7 +58,8 @@ describe('RoomPage Orchestration', () => {
     });
 
     render(<RoomPage />);
-    expect(screen.getByText(/authenticating/i)).toBeInTheDocument();
+    // Initially shows "Finding Room..." or "Loading Room..." during async init
+    expect(screen.getByText(/Finding Room|Authenticating|Loading Room/i)).toBeInTheDocument();
   });
 
   it('renders room components when data is loaded', async () => {
@@ -100,9 +112,7 @@ describe('RoomPage Orchestration', () => {
   it('shows winner notification toast when track advances to a new track', async () => {
     const track1 = { id: '1', title: 'Track 1', status: 'playing' };
     const track2 = { id: '2', title: 'Track 2', status: 'playing' };
-    const { rerender } = render(<RoomPage />);
 
-    // Mock initial state: track1 playing
     (useQueue as jest.Mock).mockReturnValue({
       items: [track1],
       playing: track1,
@@ -111,8 +121,12 @@ describe('RoomPage Orchestration', () => {
       advanceQueue: jest.fn(),
     });
 
-    rerender(<RoomPage />);
-    
+    const { rerender } = render(<RoomPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('mock-now-playing')).toBeInTheDocument();
+    });
+
     // Simulating advance to track2
     (useQueue as jest.Mock).mockReturnValue({
       items: [track2],

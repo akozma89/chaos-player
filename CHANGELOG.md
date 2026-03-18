@@ -1,78 +1,23 @@
 # Changelog
 
-## Cycle #6 - 2026-03-18
+## Cycle #7 - 2026-03-18
 
 ### Added
-- Democratic Winner Notifications (Toast) — shows the next track winner with a celebratory toast
-- Next Up Winner Countdown — provides visual feedback for upcoming track selection
-- Source-Agnostic Queue Architecture — added `source` metadata to queue items for future non-YouTube support
-- 2 new tests (unit + integration); total now 118 tests across 15 suites
-
-## Cycle #5 - 2026-03-18
-
-### Added
-- Dynamic Room Page (`src/app/room/[code]/page.tsx`) — orchestrates YouTube player, queue, leaderboard, and moderation components
-- Real-time room state orchestration — combined auth, room metadata, and queue subscriptions
-- Integrated auto-advance flow — track ends triggers next track from queue automatically
-- 3 new tests for Room Page; total now 116 tests across 15 suites
-
-## Cycle #4 - 2026-03-18
-
-### Added
-- Leaderboard service (`src/lib/leaderboard.ts`) — per-session rankings by tokens spent and votes cast with real-time Supabase subscription
-- Moderation service (`src/lib/moderation.ts`) — host controls: mute user, remove user, force-skip current track
-- `<Leaderboard>` React component with real-time updates and loading/empty states
-- `<ModerationPanel>` React component with mute/remove/skip actions and confirmation guards
-- 37 new tests (21 unit + 16 accessibility/UI); total now 113 tests across 14 suites
+- GDPR Art. 17 Right to Erasure (`eraseUserData()` in `src/lib/gdpr.ts`)
+- `GDPRSettings` component with two-step confirmation UI (idle → confirm → pending → done/error)
+- `YouTubeSearch` component with real-time debounced search, add feedback, and dark neon theme
+- `getSupabase()` factory export in `src/lib/supabase.ts`
+- `useDebounce` hook (`src/hooks/useDebounce.ts`)
+- 22 new tests across GDPR unit, YouTube search, and RoomPage integration suites
 
 ### Fixed
-- Removed unused `LeaderboardEntry` type import (TypeScript strict-mode compliance)
-
-## Cycle #3 - 2026-03-18
-
-### Added
-- YouTube error boundary with `YouTubeErrorToast` component (`src/components/YouTubeErrorToast.tsx`)
-- Optimistic rollback for failed queue operations (`src/lib/youtube.ts`)
-- 7 integration tests for queue + YouTube error flows (`src/__tests__/queueIntegration.test.ts`)
-- 13 unit tests for YouTube error handling and `NowPlaying` component
-- Total test coverage: 76 tests across 10 suites
+- `addToQueue` called with `userId` instead of `addedBy` in YouTubeSearch
+- `Queue` component receiving wrong props (`roomId`/`userId` instead of `items`/`loading`/`error`/`vote`)
+- Unused `addToQueue` import in `useQueue.ts` causing type error
+- `eraseUserData` not catching rejected promises (network failures)
+- RoomPage test missing mocks for `getRoomByCode`, `useRouter`, and `YouTubeSearch`
+- GDPR integration test running without `INTEGRATION` flag (now `describe.skip` by default)
 
 ### Changed
-- `NowPlaying` component hardened with error state display
-- `youtube.ts` enhanced with resilient error classification and retry logic
-
-## Cycle #2 - 2026-03-18
-
-### Added
-- YouTube search utility with YouTube Data API v3 (`src/lib/youtube.ts`)
-- YouTube IFrame API loader with lifecycle management (`src/lib/youtubeIframe.ts`)
-- `YoutubePlayer` React component with state-change handling (`src/components/YoutubePlayer.tsx`)
-- `NowPlaying` component showing current track with controls (`src/components/NowPlaying.tsx`)
-- Auto-advance logic: advances queue when track ends (`src/lib/autoAdvance.ts`)
-- 21 unit tests for YouTube integration (search, player, auto-advance)
-
-### Fixed
-- `InstanceType` instead of `ReturnType` for `window.YT.Player` constructor type
-
-## Cycle #1 - 2026-03-18
-
-### Added
-- Schema validation utilities (`src/lib/schema.ts`)
-- Supabase RLS migration (`supabase/migrations/001_initial_schema.sql`)
-- Anonymous auth via Supabase (`src/lib/auth.ts`)
-- Room creation with 6-char code (`src/lib/rooms.ts`)
-- Token airdrop on join
-- Queue ordering by net votes + FIFO (`src/lib/queue.ts`)
-- Vote upsert with optimistic UI (`src/hooks/useQueue.ts`)
-- Skip track with token spend
-- Real-time queue subscription (Supabase Realtime)
-- `CreateRoomForm` component
-- `JoinRoomForm` component
-- `VoteButton` component
-- `Queue` component
-- Home page with room creation/join flow (`src/app/page.tsx`)
-- 35 unit tests across schema, rooms, queue, and Queue UI
-
-### Fixed
-- Supabase client uses placeholder credentials at build time (no throw on missing env)
-- TypeScript strict-mode compliance across all source files
+- `useQueue` no longer imports unused `addToQueue` from queue lib
+- RoomPage now passes correct props to `<Queue>` (items, loading, error, vote)

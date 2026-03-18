@@ -5,3 +5,5 @@ const supabaseUrl = rawUrl.startsWith('http') ? rawUrl : 'https://placeholder.su
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+export const getSupabase = () => supabase

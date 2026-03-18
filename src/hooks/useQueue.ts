@@ -12,6 +12,7 @@ export function useQueue(roomId: string, userId: string) {
   const [error, setError] = useState<string | null>(null)
 
   const loadQueue = useCallback(async () => {
+    if (!roomId) return
     const { data, error: fetchError } = await getQueueItems(roomId)
     if (fetchError) {
       setError(fetchError.message)
@@ -23,6 +24,11 @@ export function useQueue(roomId: string, userId: string) {
   }, [roomId])
 
   useEffect(() => {
+    if (!roomId) {
+      setLoading(false)
+      return
+    }
+
     loadQueue()
 
     // Subscribe to realtime changes

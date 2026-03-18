@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import GDPRSettings from '@/components/GDPRSettings';
 
 export const metadata: Metadata = {
   title: 'Chaos Music Player',
@@ -13,7 +14,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-dark-bg text-gray-100">{children}</body>
+      <body className="bg-dark-bg text-gray-100">
+        {children}
+        <GDPRSettings />
+      </body>
     </html>
   )
 }
