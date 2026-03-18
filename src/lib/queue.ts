@@ -163,6 +163,7 @@ export async function getQueueItems(roomId: string): Promise<GetQueueResult> {
     upvotes: row.upvotes as number,
     downvotes: row.downvotes as number,
     status: row.status as QueueItem['status'],
+    playingSince: (row.playing_since as string) ?? null,
   }))
 
   return { data: items, error: null }

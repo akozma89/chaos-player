@@ -86,11 +86,11 @@ export async function getLeaderboard(roomId: string): Promise<GetLeaderboardResu
     tokenSpends[uid] = (tokenSpends[uid] ?? 0) + (row.amount as number)
   }
 
-  // Fetch votes for room (via queue_items join not available; use user_id on votes table)
+  // Fetch votes for room via queue_items join (votes has no room_id column)
   const { data: votesData } = await supabase
     .from('votes')
-    .select()
-    .eq('room_id', roomId)
+    .select('user_id, queue_items!inner(room_id)')
+    .eq('queue_items.room_id', roomId)
 
   const voteCounts: Record<string, number> = {}
   for (const v of votesData ?? []) {

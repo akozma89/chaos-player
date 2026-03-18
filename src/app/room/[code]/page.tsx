@@ -46,7 +46,7 @@ const RoomPage = () => {
     initAuth();
   }, [code, router]);
 
-  const { playing, items, pending, loading, error, vote, advanceQueue } = useQueue(roomId || '', userId || '');
+  const { playing, items, pending, loading, error, vote, refresh } = useQueue(roomId || '', userId || '');
 
   // Winner Notification Logic
   // Use a ref for lastTrackId so updates don't trigger re-renders/effect re-runs.
@@ -122,14 +122,14 @@ const RoomPage = () => {
                 queue={items}
                 isHost={true} // For MVP, everyone can be a host or we'll refine later
                 userId={userId}
-                onTrackChange={() => advanceQueue()}
+                onTrackChange={() => refresh()}
               />
             </div>
           </div>
 
           {/* Right Column: Queue & Leaderboard */}
           <div className="space-y-8">
-            <section className="bg-zinc-900/50 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
+            <section className="relative z-10 bg-zinc-900/50 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                 <span className="w-1.5 h-5 bg-neon-blue rounded-full block" />
                 ADD TRACK

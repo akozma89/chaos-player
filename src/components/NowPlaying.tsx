@@ -51,10 +51,20 @@ export function NowPlaying({
   const [elapsed, setElapsed] = useState(0)
   const [advanceError, setAdvanceError] = useState<string | null>(null)
 
-  // Reset timer when track changes
+  // Reset timer when track changes; start from current offset to stay in sync
   useEffect(() => {
-    setElapsed(0)
-    if (!currentTrack) return
+    if (!currentTrack) {
+      setElapsed(0)
+      return
+    }
+
+    const initialOffset = currentTrack.playingSince
+      ? Math.min(
+          Math.floor((Date.now() - new Date(currentTrack.playingSince).getTime()) / 1000),
+          currentTrack.duration
+        )
+      : 0
+    setElapsed(initialOffset)
 
     const interval = setInterval(() => {
       setElapsed((prev) => {
@@ -67,7 +77,8 @@ export function NowPlaying({
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [currentTrack])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTrack?.id])
 
   const tryAdvance = useCallback(async () => {
     if (!currentTrack) return
@@ -110,8 +121,10 @@ export function NowPlaying({
     <div data-testid="now-playing" className="flex flex-col gap-3">
       {currentTrack.source === 'youtube' ? (
         <YoutubePlayer
+          key={currentTrack.sourceId}
           videoId={currentTrack.sourceId}
           isHost={isHost}
+          playingSince={currentTrack.playingSince}
           onEnded={tryAdvance}
           onSkip={tryAdvance}
         />

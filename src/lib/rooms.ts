@@ -14,6 +14,7 @@ export function generateRoomCode(): string {
 interface CreateRoomParams {
   name: string
   hostId: string
+  username: string
 }
 
 interface CreateRoomResult {
@@ -21,7 +22,7 @@ interface CreateRoomResult {
   error: Error | null
 }
 
-export async function createRoom({ name, hostId }: CreateRoomParams): Promise<CreateRoomResult> {
+export async function createRoom({ name, hostId, username }: CreateRoomParams): Promise<CreateRoomResult> {
   const code = generateRoomCode()
 
   const { data, error } = await supabase
@@ -31,6 +32,19 @@ export async function createRoom({ name, hostId }: CreateRoomParams): Promise<Cr
     .single()
 
   if (error) return { data: null, error: new Error(error.message) }
+
+  // Register host as a session member so RLS policies (queue insert, etc.) apply
+  const { error: sessionError } = await supabase
+    .from('sessions')
+    .insert({
+      room_id: data.id,
+      user_id: hostId,
+      username,
+      tokens: INITIAL_TOKEN_AIRDROP,
+      is_host: true,
+    })
+
+  if (sessionError) return { data: null, error: new Error(sessionError.message) }
 
   return {
     data: {

@@ -35,6 +35,7 @@ export interface QueueItem {
   upvotes: number
   downvotes: number
   status: 'pending' | 'playing' | 'completed' | 'skipped'
+  playingSince: string | null
 }
 
 export interface Vote {

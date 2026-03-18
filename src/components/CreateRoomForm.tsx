@@ -28,7 +28,7 @@ export function CreateRoomForm({ onRoomCreated }: Props) {
       return
     }
 
-    const { data, error: roomError } = await createRoom({ name: roomName.trim(), hostId: user.id })
+    const { data, error: roomError } = await createRoom({ name: roomName.trim(), hostId: user.id, username: username.trim() })
     if (roomError || !data) {
       setError('Failed to create room. Please try again.')
       setLoading(false)

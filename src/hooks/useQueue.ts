@@ -10,7 +10,6 @@ export function useQueue(roomId: string, userId: string) {
   const [items, setItems] = useState<QueueItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const hasBootstrapped = useRef(false)
   // Track user's current vote per queue item for optimistic delta computation
   const userVotes = useRef<Map<string, 'upvote' | 'downvote'>>(new Map())
 
@@ -26,14 +25,11 @@ export function useQueue(roomId: string, userId: string) {
     setLoading(false)
   }, [roomId])
 
-  // Bootstrap: if no track is playing after initial load, promote the top pending item
+  // Bootstrap: if no track is playing, promote the top pending item
   const bootstrapIfNeeded = useCallback(async (loadedItems: QueueItem[]) => {
-    if (hasBootstrapped.current) return
     const isPlaying = loadedItems.some(i => i.status === 'playing')
     const hasPending = loadedItems.some(i => i.status === 'pending')
     if (isPlaying || !hasPending) return
-
-    hasBootstrapped.current = true
     await promoteToPlaying({ queue: loadedItems, roomId })
   }, [roomId])
 
@@ -58,22 +54,21 @@ export function useQueue(roomId: string, userId: string) {
     // Initial load with bootstrap check
     loadQueueWithBootstrap()
 
-    // Subscribe to realtime changes (no bootstrap on updates)
-    // Note: only subscribe to queue_items changes — votes are reflected in queue_items.upvotes/downvotes
-    // via castVote, so a separate votes subscription (which lacks room_id) is unnecessary and error-prone.
+    // Subscribe to realtime changes — also runs bootstrap so newly added tracks auto-start
+    // Note: only subscribe to queue_items — votes are reflected via castVote RPC, no separate votes subscription needed.
     const channel = supabase
       .channel(`queue:${roomId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'queue_items', filter: `room_id=eq.${roomId}` },
-        () => loadQueue()
+        () => loadQueueWithBootstrap()
       )
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [roomId, loadQueue, loadQueueWithBootstrap])
+  }, [roomId, loadQueueWithBootstrap])
 
   const vote = useCallback(
     async (queueItemId: string, type: 'upvote' | 'downvote') => {

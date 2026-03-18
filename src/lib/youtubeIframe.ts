@@ -25,6 +25,7 @@ declare global {
         }
       ) => {
         loadVideoById: (videoId: string) => void
+        seekTo: (seconds: number) => void
         pauseVideo: () => void
         stopVideo: () => void
         destroy: () => void

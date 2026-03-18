@@ -46,17 +46,15 @@ interface PromoteToPlayingResult {
 /** Bootstrap: promote top pending item to playing when no track is currently playing */
 export async function promoteToPlaying({
   queue,
+  roomId,
 }: PromoteToPlayingParams): Promise<PromoteToPlayingResult> {
   const candidate = pickNextTrack(queue)
   if (!candidate) return { promotedItem: null, error: null }
 
-  const { error: playError } = await supabase
-    .from('queue_items')
-    .update({ status: 'playing' })
-    .eq('id', candidate.id)
+  const { error } = await supabase.rpc('promote_to_playing', { p_room_id: roomId })
 
-  if (playError) {
-    return { promotedItem: null, error: new Error(playError.message) }
+  if (error) {
+    return { promotedItem: null, error: new Error(error.message) }
   }
 
   return { promotedItem: candidate, error: null }
@@ -65,30 +63,17 @@ export async function promoteToPlaying({
 export async function advanceQueue({
   currentItemId,
   queue,
-  roomId: _roomId,
+  roomId,
 }: AdvanceQueueParams): Promise<AdvanceQueueResult> {
-  // Mark current as completed
-  const { error: completeError } = await supabase
-    .from('queue_items')
-    .update({ status: 'completed' })
-    .eq('id', currentItemId)
+  const { error } = await supabase.rpc('advance_queue', {
+    p_current_item_id: currentItemId,
+    p_room_id: roomId,
+  })
 
-  if (completeError) {
-    return { nextItem: null, error: new Error(completeError.message) }
+  if (error) {
+    return { nextItem: null, error: new Error(error.message) }
   }
 
   const nextItem = pickNextTrack(queue)
-  if (!nextItem) return { nextItem: null, error: null }
-
-  // Mark next as playing
-  const { error: playError } = await supabase
-    .from('queue_items')
-    .update({ status: 'playing' })
-    .eq('id', nextItem.id)
-
-  if (playError) {
-    return { nextItem: null, error: new Error(playError.message) }
-  }
-
   return { nextItem, error: null }
 }
