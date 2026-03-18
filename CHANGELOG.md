@@ -1,5 +1,18 @@
 # Changelog
 
+## Cycle #10 - 2026-03-18
+
+### Added
+- Playlist bootstrap logic: `promoteToPlaying` auto-promotes first pending item when no track is playing and queue is idle
+- `hasBootstrapped` guard in `useQueue` hook prevents repeated bootstrap calls after initial startup
+
+### Fixed
+- Playlist never starting without manual host action when room first loads with queued tracks
+
+### Changed
+- `autoAdvance.ts` now exports `promoteToPlaying` for use in startup bootstrap flow
+- `useQueue.ts` tracks bootstrap state to avoid redundant Supabase calls on re-renders
+
 ## Cycle #8 - 2026-03-18
 
 ### Added

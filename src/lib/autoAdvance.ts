@@ -33,6 +33,35 @@ interface AdvanceQueueResult {
   error: Error | null
 }
 
+interface PromoteToPlayingParams {
+  queue: QueueItem[]
+  roomId: string
+}
+
+interface PromoteToPlayingResult {
+  promotedItem: QueueItem | null
+  error: Error | null
+}
+
+/** Bootstrap: promote top pending item to playing when no track is currently playing */
+export async function promoteToPlaying({
+  queue,
+}: PromoteToPlayingParams): Promise<PromoteToPlayingResult> {
+  const candidate = pickNextTrack(queue)
+  if (!candidate) return { promotedItem: null, error: null }
+
+  const { error: playError } = await supabase
+    .from('queue_items')
+    .update({ status: 'playing' })
+    .eq('id', candidate.id)
+
+  if (playError) {
+    return { promotedItem: null, error: new Error(playError.message) }
+  }
+
+  return { promotedItem: candidate, error: null }
+}
+
 export async function advanceQueue({
   currentItemId,
   queue,

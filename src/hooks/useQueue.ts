@@ -1,15 +1,16 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { getQueueItems, castVote, computeQueueOrder } from '../lib/queue'
-import { advanceQueue as libAdvanceQueue } from '../lib/autoAdvance'
+import { advanceQueue as libAdvanceQueue, promoteToPlaying } from '../lib/autoAdvance'
 import type { QueueItem } from '../types'
 
 export function useQueue(roomId: string, userId: string) {
   const [items, setItems] = useState<QueueItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const hasBootstrapped = useRef(false)
 
   const loadQueue = useCallback(async () => {
     if (!roomId) return
@@ -23,15 +24,39 @@ export function useQueue(roomId: string, userId: string) {
     setLoading(false)
   }, [roomId])
 
+  // Bootstrap: if no track is playing after initial load, promote the top pending item
+  const bootstrapIfNeeded = useCallback(async (loadedItems: QueueItem[]) => {
+    if (hasBootstrapped.current) return
+    const isPlaying = loadedItems.some(i => i.status === 'playing')
+    const hasPending = loadedItems.some(i => i.status === 'pending')
+    if (isPlaying || !hasPending) return
+
+    hasBootstrapped.current = true
+    await promoteToPlaying({ queue: loadedItems, roomId })
+  }, [roomId])
+
+  const loadQueueWithBootstrap = useCallback(async () => {
+    if (!roomId) return
+    const { data, error: fetchError } = await getQueueItems(roomId)
+    if (fetchError) {
+      setError(fetchError.message)
+    } else {
+      setItems(data)
+      await bootstrapIfNeeded(data)
+    }
+    setLoading(false)
+  }, [roomId, bootstrapIfNeeded])
+
   useEffect(() => {
     if (!roomId) {
       setLoading(false)
       return
     }
 
-    loadQueue()
+    // Initial load with bootstrap check
+    loadQueueWithBootstrap()
 
-    // Subscribe to realtime changes
+    // Subscribe to realtime changes (no bootstrap on updates)
     const channel = supabase
       .channel(`queue:${roomId}`)
       .on(
@@ -49,7 +74,7 @@ export function useQueue(roomId: string, userId: string) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [roomId, loadQueue])
+  }, [roomId, loadQueue, loadQueueWithBootstrap])
 
   const vote = useCallback(
     async (queueItemId: string, type: 'upvote' | 'downvote') => {
