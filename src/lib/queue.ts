@@ -120,21 +120,8 @@ export async function castVote({ queueItemId, userId, type }: CastVoteParams): P
 
   if (voteError) return { vote: null, error: new Error(voteError.message) }
 
-  // Recompute vote counts from all votes for this item
-  const { data: allVotes, error: countError } = await supabase
-    .from('votes')
-    .select('type')
-    .eq('queue_item_id', queueItemId)
-
-  if (!countError && allVotes) {
-    const upvotes = allVotes.filter((v: { type: string }) => v.type === 'upvote').length
-    const downvotes = allVotes.filter((v: { type: string }) => v.type === 'downvote').length
-
-    await supabase
-      .from('queue_items')
-      .update({ upvotes, downvotes })
-      .eq('id', queueItemId)
-  }
+  // Recompute vote counts via SECURITY DEFINER RPC (bypasses host-only UPDATE policy)
+  await supabase.rpc('update_vote_counts', { p_queue_item_id: queueItemId })
 
   return {
     vote: {
