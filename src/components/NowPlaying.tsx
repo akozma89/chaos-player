@@ -5,6 +5,32 @@ import { YoutubePlayer } from './YoutubePlayer'
 import { advanceQueue } from '../lib/autoAdvance'
 import type { QueueItem } from '../types'
 
+function AdvanceError({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  return (
+    <div
+      role="alert"
+      data-testid="now-playing-error"
+      className="flex items-start gap-3 px-4 py-3 rounded-lg border border-pink-500 bg-black/80 text-sm"
+    >
+      <span className="text-pink-500 font-bold leading-none mt-0.5" aria-hidden>
+        ⚠
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-pink-500 font-bold">Queue Advance Failed</p>
+        <p className="text-gray-300 mt-0.5">{message}</p>
+      </div>
+      <button
+        data-testid="now-playing-error-dismiss"
+        onClick={onDismiss}
+        aria-label="Dismiss error"
+        className="text-gray-500 hover:text-white transition shrink-0"
+      >
+        ✕
+      </button>
+    </div>
+  )
+}
+
 interface NowPlayingProps {
   currentTrack: QueueItem | null
   queue: QueueItem[]
@@ -23,6 +49,7 @@ export function NowPlaying({
   onTokenSkip,
 }: NowPlayingProps) {
   const [elapsed, setElapsed] = useState(0)
+  const [advanceError, setAdvanceError] = useState<string | null>(null)
 
   // Reset timer when track changes
   useEffect(() => {
@@ -42,23 +69,19 @@ export function NowPlaying({
     return () => clearInterval(interval)
   }, [currentTrack])
 
-  const handleEnded = useCallback(async () => {
+  const tryAdvance = useCallback(async () => {
     if (!currentTrack) return
-    const { nextItem } = await advanceQueue({
+    const { nextItem, error } = await advanceQueue({
       currentItemId: currentTrack.id,
       queue,
       roomId: currentTrack.roomId,
     })
-    onTrackChange?.(nextItem)
-  }, [currentTrack, queue, onTrackChange])
-
-  const handleHostSkip = useCallback(async () => {
-    if (!currentTrack) return
-    const { nextItem } = await advanceQueue({
-      currentItemId: currentTrack.id,
-      queue,
-      roomId: currentTrack.roomId,
-    })
+    if (error) {
+      // Rollback: do not call onTrackChange, surface error to user
+      setAdvanceError(error.message)
+      return
+    }
+    setAdvanceError(null)
     onTrackChange?.(nextItem)
   }, [currentTrack, queue, onTrackChange])
 
@@ -84,8 +107,8 @@ export function NowPlaying({
       <YoutubePlayer
         videoId={currentTrack.videoId}
         isHost={isHost}
-        onEnded={handleEnded}
-        onSkip={handleHostSkip}
+        onEnded={tryAdvance}
+        onSkip={tryAdvance}
       />
 
       {/* Track info */}
@@ -121,6 +144,11 @@ export function NowPlaying({
         </div>
         <span>{fmtTime(currentTrack.duration)}</span>
       </div>
+
+      {/* Advance error toast (optimistic rollback) */}
+      {advanceError && (
+        <AdvanceError message={advanceError} onDismiss={() => setAdvanceError(null)} />
+      )}
     </div>
   )
 }

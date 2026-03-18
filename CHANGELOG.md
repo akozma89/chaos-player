@@ -1,5 +1,18 @@
 # Changelog
 
+## Cycle #3 - 2026-03-18
+
+### Added
+- YouTube error boundary with `YouTubeErrorToast` component (`src/components/YouTubeErrorToast.tsx`)
+- Optimistic rollback for failed queue operations (`src/lib/youtube.ts`)
+- 7 integration tests for queue + YouTube error flows (`src/__tests__/queueIntegration.test.ts`)
+- 13 unit tests for YouTube error handling and `NowPlaying` component
+- Total test coverage: 76 tests across 10 suites
+
+### Changed
+- `NowPlaying` component hardened with error state display
+- `youtube.ts` enhanced with resilient error classification and retry logic
+
 ## Cycle #2 - 2026-03-18
 
 ### Added
