@@ -18,6 +18,7 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
   const [isSearching, setIsSearching] = useState(false)
   const [addedId, setAddedId] = useState<string | null>(null)
   const [addingId, setAddingId] = useState<string | null>(null)
+  const [selectedIndex, setSelectedIndex] = useState(-1)
   const debouncedQuery = useDebounce(query, 500)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -27,6 +28,7 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
         setResults([])
         setError(null)
         setIsSearching(false)
+        setSelectedIndex(-1)
         return
       }
 
@@ -35,6 +37,7 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
       setResults(searchResults)
       setError(searchError)
       setIsSearching(false)
+      setSelectedIndex(-1)
     }
     search()
   }, [debouncedQuery])
@@ -45,6 +48,7 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
       if (e.key === 'Escape') {
         setResults([])
         setError(null)
+        setSelectedIndex(-1)
       }
     }
     document.addEventListener('keydown', handleKeyDown)
@@ -57,6 +61,7 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setResults([])
         setError(null)
+        setSelectedIndex(-1)
       }
     }
     document.addEventListener('mousedown', handleMouseDown)
@@ -67,10 +72,12 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
     setQuery('')
     setResults([])
     setError(null)
+    setSelectedIndex(-1)
   }, [])
 
   const handleAdd = useCallback(
     async (result: YouTubeSearchResult) => {
+      if (addingId || addedId === result.sourceId) return
       setAddingId(result.sourceId)
       await addToQueue({
         roomId,
@@ -88,10 +95,30 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
         setAddedId(null)
         setQuery('')
         setResults([])
+        setSelectedIndex(-1)
       }, 2000)
     },
-    [roomId, userId]
+    [roomId, userId, addingId, addedId]
   )
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setResults([])
+      setError(null)
+      setSelectedIndex(-1)
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : prev))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev))
+    } else if (e.key === 'Enter') {
+      if (selectedIndex >= 0 && selectedIndex < results.length) {
+        e.preventDefault()
+        handleAdd(results[selectedIndex])
+      }
+    }
+  }
 
   const formatDuration = (seconds: number) => {
     const m = Math.floor(seconds / 60)
@@ -106,12 +133,7 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              setResults([])
-              setError(null)
-            }
-          }}
+          onKeyDown={handleKeyDown}
           placeholder="Search YouTube..."
           className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-neon-blue/50 focus:ring-1 focus:ring-neon-blue/20 transition pr-16"
         />
@@ -139,39 +161,43 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
 
       {results.length > 0 && (
         <ul className="absolute z-50 w-full mt-1 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden">
-          {results.map((result) => {
+          {results.map((result, index) => {
             const isAdded = addedId === result.sourceId
             const isAdding = addingId === result.sourceId
+            const isSelected = selectedIndex === index
 
             return (
-              <li
-                key={result.sourceId}
-                className="flex items-center gap-3 p-2 border-b border-white/5 last:border-b-0 hover:bg-white/5 transition"
-              >
-                <Image
-                  src={result.thumbnailUrl}
-                  alt={result.title}
-                  width={64}
-                  height={48}
-                  className="object-cover rounded flex-shrink-0"
-                />
-                <div className="flex-grow min-w-0">
-                  <p className="font-medium text-sm text-white truncate">{result.title}</p>
-                  <p className="text-xs text-zinc-400 truncate">{result.channelTitle}</p>
-                  <p className="text-xs text-zinc-500">{formatDuration(result.duration)}</p>
-                </div>
+              <li key={result.sourceId}>
                 <button
                   onClick={() => handleAdd(result)}
                   disabled={isAdding || isAdded || addingId !== null}
-                  className={`flex-shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
-                    isAdded
-                      ? 'bg-neon-green/20 text-neon-green border border-neon-green/30 cursor-default'
-                      : isAdding
-                        ? 'bg-neon-blue/10 text-neon-blue border border-neon-blue/20 cursor-wait'
-                        : 'bg-neon-blue/10 text-neon-blue border border-neon-blue/20 hover:bg-neon-blue/20'
+                  className={`w-full flex items-center gap-3 p-2 border-b border-white/5 last:border-b-0 transition text-left ${
+                    isSelected ? 'bg-white/10' : 'hover:bg-white/5'
                   }`}
                 >
-                  {isAdded ? '✓ Added' : isAdding ? '...' : '+ Add'}
+                  <Image
+                    src={result.thumbnailUrl}
+                    alt={result.title}
+                    width={64}
+                    height={48}
+                    className="object-cover rounded flex-shrink-0"
+                  />
+                  <div className="flex-grow min-w-0">
+                    <p className="font-medium text-sm text-white truncate">{result.title}</p>
+                    <p className="text-xs text-zinc-400 truncate">{result.channelTitle}</p>
+                    <p className="text-xs text-zinc-500">{formatDuration(result.duration)}</p>
+                  </div>
+                  <div
+                    className={`flex-shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
+                      isAdded
+                        ? 'bg-neon-green/20 text-neon-green border border-neon-green/30 cursor-default'
+                        : isAdding
+                          ? 'bg-neon-blue/10 text-neon-blue border border-neon-blue/20 cursor-wait'
+                          : 'bg-neon-blue/10 text-neon-blue border border-neon-blue/20 hover:bg-neon-blue/20'
+                    }`}
+                  >
+                    {isAdded ? '✓ Added' : isAdding ? '...' : '+ Add'}
+                  </div>
                 </button>
               </li>
             )

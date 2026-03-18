@@ -41,8 +41,8 @@ export function useQueue(roomId: string, userId: string) {
 
     const { error: bootstrapError } = await promoteToPlaying({ queue: loadedItems, roomId })
     if (bootstrapError) {
-      // If it failed, we might want to allow another attempt later,
-      // but to prevent spamming, we keep it as true for now.
+      // Allow retry on subsequent update if it failed
+      hasBootstrapped.current = false
       console.error('Bootstrap failed:', bootstrapError)
     }
   }, [roomId])

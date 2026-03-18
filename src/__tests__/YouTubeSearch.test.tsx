@@ -126,4 +126,61 @@ describe('YouTubeSearch', () => {
       expect(screen.queryByText('Test Track')).not.toBeInTheDocument()
     })
   })
+
+  describe('Keyboard Navigation', () => {
+    const MOCK_RESULTS_MULTI = [
+      { sourceId: '1', title: 'Track 1', channelTitle: 'C1', thumbnailUrl: '', duration: 100 },
+      { sourceId: '2', title: 'Track 2', channelTitle: 'C2', thumbnailUrl: '', duration: 200 },
+    ]
+
+    it('highlights results when navigating with ArrowDown/ArrowUp', async () => {
+      searchYouTubeWithErrors.mockResolvedValue({ results: MOCK_RESULTS_MULTI, error: null })
+      render(<YouTubeSearch roomId="room-1" userId="user-1" />)
+      const input = screen.getByPlaceholderText('Search YouTube...')
+      fireEvent.change(input, { target: { value: 'test' } })
+
+      await waitFor(() => {
+        expect(screen.getByText('Track 1')).toBeInTheDocument()
+      })
+
+      // ArrowDown to select first item
+      fireEvent.keyDown(input, { key: 'ArrowDown' })
+      const item1 = screen.getByText('Track 1').closest('button')
+      expect(item1).toHaveClass('bg-white/10')
+
+      // ArrowDown to select second item
+      fireEvent.keyDown(input, { key: 'ArrowDown' })
+      const item2 = screen.getByText('Track 2').closest('button')
+      expect(item2).toHaveClass('bg-white/10')
+      expect(item1).not.toHaveClass('bg-white/10')
+
+      // ArrowUp to go back to first item
+      fireEvent.keyDown(input, { key: 'ArrowUp' })
+      expect(item1).toHaveClass('bg-white/10')
+      expect(item2).not.toHaveClass('bg-white/10')
+    })
+
+    it('adds selected item to queue when Enter is pressed', async () => {
+      const { addToQueue } = require('../lib/queue')
+      searchYouTubeWithErrors.mockResolvedValue({ results: MOCK_RESULTS_MULTI, error: null })
+      render(<YouTubeSearch roomId="room-1" userId="user-1" />)
+      const input = screen.getByPlaceholderText('Search YouTube...')
+      fireEvent.change(input, { target: { value: 'test' } })
+
+      await waitFor(() => {
+        expect(screen.getByText('Track 1')).toBeInTheDocument()
+      })
+
+      // Select first item
+      fireEvent.keyDown(input, { key: 'ArrowDown' })
+      
+      // Press Enter
+      fireEvent.keyDown(input, { key: 'Enter' })
+
+      expect(addToQueue).toHaveBeenCalledWith(expect.objectContaining({
+        sourceId: '1',
+        title: 'Track 1',
+      }))
+    })
+  })
 })

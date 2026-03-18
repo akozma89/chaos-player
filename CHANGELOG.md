@@ -1,5 +1,18 @@
 # Changelog
 
+## Cycle #13 - 2026-03-19
+
+### Added
+- Keyboard navigation (ArrowUp, ArrowDown, Enter) in `YouTubeSearch` component for faster track addition
+- `hasBootstrapped` guard in `useQueue` hook prevents redundant bootstrap attempts on subsequent room loads
+
+### Fixed
+- Redundant bootstrap logic firing multiple times on re-renders, reducing unnecessary Supabase calls
+
+### Changed
+- `YouTubeSearch` search results now auto-dismiss after adding a song
+- `README.md` updated with latest test coverage stats (212 tests, 25 suites)
+
 ## Cycle #12 - 2026-03-19
 
 ### Added

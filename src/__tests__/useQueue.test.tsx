@@ -105,4 +105,71 @@ describe('useQueue bootstrap', () => {
     // If it's 1, the guard works. If it's 2, the guard is missing or broken.
     expect(autoAdvanceLib.promoteToPlaying).toHaveBeenCalledTimes(1)
   })
+
+  it('retries bootstrap on subsequent updates if previous attempt failed', async () => {
+    const items = [makeItem({ id: '1', status: 'pending' })]
+    ;(queueLib.getQueueItems as jest.Mock).mockResolvedValue({ data: items, error: null })
+    
+    // First attempt fails
+    ;(autoAdvanceLib.promoteToPlaying as jest.Mock)
+      .mockResolvedValueOnce({ promotedItem: null, error: new Error('Bootstrap failed') })
+      .mockResolvedValueOnce({ promotedItem: items[0], error: null })
+
+    let onUpdate: any
+    ;(supabase.channel as jest.Mock).mockReturnValue({
+      on: jest.fn().mockImplementation((_event, _filter, callback) => {
+        onUpdate = callback
+        return { subscribe: jest.fn() }
+      }),
+      subscribe: jest.fn(),
+    })
+
+    await act(async () => {
+      renderHook(() => useQueue('room-1', 'user-1'))
+    })
+
+    // First load attempt
+    expect(autoAdvanceLib.promoteToPlaying).toHaveBeenCalledTimes(1)
+
+    // Second update should try again since the first failed
+    await act(async () => {
+      await onUpdate()
+    })
+
+    expect(autoAdvanceLib.promoteToPlaying).toHaveBeenCalledTimes(2)
+  })
+
+  it('prevents concurrent bootstrap calls within the same component', async () => {
+    const items = [makeItem({ id: '1', status: 'pending' })]
+    ;(queueLib.getQueueItems as jest.Mock).mockResolvedValue({ data: items, error: null })
+    
+    // Slow promoteToPlaying
+    let resolvePromote: any
+    const promotePromise = new Promise((resolve) => {
+      resolvePromote = resolve
+    })
+    ;(autoAdvanceLib.promoteToPlaying as jest.Mock).mockReturnValue(promotePromise)
+
+    let hookResult: any
+    await act(async () => {
+      hookResult = renderHook(() => useQueue('room-1', 'user-1'))
+    })
+
+    // One call should be in progress
+    expect(autoAdvanceLib.promoteToPlaying).toHaveBeenCalledTimes(1)
+
+    // Trigger another update immediately while first is still pending
+    await act(async () => {
+      await hookResult.rerender()
+    })
+
+    // Should still only be 1 call
+    expect(autoAdvanceLib.promoteToPlaying).toHaveBeenCalledTimes(1)
+
+    // Resolve first call
+    await act(async () => {
+      resolvePromote({ promotedItem: items[0], error: null })
+      await promotePromise
+    })
+  })
 })
