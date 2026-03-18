@@ -20,7 +20,8 @@ jest.mock('../lib/supabase', () => ({
 const makeItem = (overrides: Partial<QueueItem> = {}): QueueItem => ({
   id: 'item-1',
   roomId: 'room-1',
-  videoId: 'v1',
+  sourceId: 'v1',
+  source: 'youtube',
   title: 'Track',
   artist: 'Artist',
   duration: 200,
@@ -44,6 +45,7 @@ describe('Queue sync: add/remove/reorder', () => {
       id: 'item-new',
       room_id: 'room-1',
       video_id: 'yt-abc',
+      source: 'youtube',
       title: 'New Song',
       artist: 'Artist',
       duration: 180,
@@ -65,7 +67,8 @@ describe('Queue sync: add/remove/reorder', () => {
 
     const result = await addToQueue({
       roomId: 'room-1',
-      videoId: 'yt-abc',
+      sourceId: 'yt-abc',
+      source: 'youtube',
       title: 'New Song',
       artist: 'Artist',
       duration: 180,
@@ -73,7 +76,7 @@ describe('Queue sync: add/remove/reorder', () => {
     })
 
     expect(result.error).toBeNull()
-    expect(result.data?.videoId).toBe('yt-abc')
+    expect(result.data?.sourceId).toBe('yt-abc')
     expect(result.data?.roomId).toBe('room-1')
     expect(result.data?.status).toBe('pending')
   })
@@ -126,7 +129,8 @@ describe('Queue sync: add/remove/reorder', () => {
 
     const result = await addToQueue({
       roomId: 'room-1',
-      videoId: 'yt-fail',
+      sourceId: 'yt-fail',
+      source: 'youtube',
       title: 'Fail Song',
       artist: 'Artist',
       duration: 180,

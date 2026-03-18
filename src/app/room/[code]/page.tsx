@@ -7,11 +7,14 @@ import { getCurrentUser, signInAnonymously } from '../../../lib/auth';
 import { Queue } from '../../../components/Queue';
 import Leaderboard from '../../../components/Leaderboard';
 import { NowPlaying } from '../../../components/NowPlaying';
+import { WinnerToast } from '../../../components/WinnerToast';
 
 const RoomPage = () => {
   const { code } = useParams();
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
+  const [lastTrackId, setLastTrackId] = useState<string | null>(null);
+  const [showWinnerToast, setShowWinnerToast] = useState(false);
   const roomId = code as string;
 
   useEffect(() => {
@@ -34,6 +37,21 @@ const RoomPage = () => {
 
   const { playing, items, loading, error, advanceQueue } = useQueue(roomId, userId || '');
 
+  // Winner Notification Logic
+  useEffect(() => {
+    if (playing && playing.id !== lastTrackId) {
+      // If we had a previous track, and this is a new one, show winner toast
+      if (lastTrackId !== null) {
+        setShowWinnerToast(true);
+        // Auto-dismiss after 8 seconds
+        const timer = setTimeout(() => setShowWinnerToast(false), 8000);
+        return () => clearTimeout(timer);
+      }
+      setLastTrackId(playing.id);
+    }
+    return;
+  }, [playing, lastTrackId]);
+
   if (!userId || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black text-white">
@@ -54,6 +72,13 @@ const RoomPage = () => {
 
   return (
     <div className="min-h-screen bg-black text-white p-4 md:p-8">
+      {showWinnerToast && playing && (
+        <WinnerToast 
+          winner={playing} 
+          onDismiss={() => setShowWinnerToast(false)} 
+        />
+      )}
+
       <div className="max-w-7xl mx-auto space-y-8">
         <header className="flex justify-between items-center border-b border-white/10 pb-4">
           <div className="flex items-center gap-4">

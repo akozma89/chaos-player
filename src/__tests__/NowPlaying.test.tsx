@@ -29,15 +29,17 @@ jest.mock('../components/YoutubePlayer', () => ({
   ),
 }))
 
-// Mock advanceQueue
+// Mock advanceQueue and pickNextTrack
 jest.mock('../lib/autoAdvance', () => ({
   advanceQueue: jest.fn(),
+  pickNextTrack: jest.requireActual('../lib/autoAdvance').pickNextTrack,
 }))
 
 const makeTrack = (overrides: Partial<QueueItem> = {}): QueueItem => ({
   id: 'track-1',
   roomId: 'room-1',
-  videoId: 'abc123',
+  sourceId: 'abc123',
+  source: 'youtube',
   title: 'Test Track',
   artist: 'Test Artist',
   duration: 180,
@@ -185,5 +187,32 @@ describe('NowPlaying', () => {
       expect(onTrackChange).not.toHaveBeenCalled()
       expect(screen.getByTestId('now-playing-error')).toBeInTheDocument()
     })
+  })
+
+  it('displays "Next Up" winner and countdown when track is nearing end (<10s)', () => {
+    jest.useFakeTimers()
+    const currentTrack = makeTrack({ duration: 100 })
+    const winner = makeTrack({ id: 'track-winner', title: 'Winning Track', status: 'pending' })
+    const queue = [currentTrack, winner]
+
+    render(
+      <NowPlaying
+        currentTrack={currentTrack}
+        queue={queue}
+        isHost={false}
+        userId="user-1"
+      />
+    )
+
+    // Advance time to 91 seconds (9 seconds remaining)
+    act(() => {
+      jest.advanceTimersByTime(91000)
+    })
+
+    expect(screen.getByText(/Next Up:/i)).toBeInTheDocument()
+    expect(screen.getByText('Winning Track')).toBeInTheDocument()
+    expect(screen.getByText(/9s/i)).toBeInTheDocument()
+
+    jest.useRealTimers()
   })
 })

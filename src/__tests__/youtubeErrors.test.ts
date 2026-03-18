@@ -79,7 +79,7 @@ describe('YouTube API error paths (searchYouTubeWithErrors)', () => {
     expect(error).toBeNull()
     expect(results).toHaveLength(1)
     expect(results[0].duration).toBe(0)
-    expect(results[0].videoId).toBe('abc123')
+    expect(results[0].sourceId).toBe('abc123')
   })
 
   it('returns empty results with no error for blank query (no network call)', async () => {
@@ -103,7 +103,7 @@ describe('YouTube API error paths (searchYouTubeWithErrors)', () => {
 
     expect(error).toBeNull()
     expect(results).toHaveLength(1)
-    expect(results[0].videoId).toBe('abc123')
+    expect(results[0].sourceId).toBe('abc123')
     expect(results[0].duration).toBe(225)
   })
 })

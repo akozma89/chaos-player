@@ -73,7 +73,8 @@ describe('Supabase Schema Validation', () => {
       const item: QueueItem = {
         id: 'item-uuid',
         roomId: 'room-uuid',
-        videoId: 'yt-video-id',
+        sourceId: 'yt-video-id',
+        source: 'youtube',
         title: 'Bohemian Rhapsody',
         artist: 'Queen',
         duration: 354,
@@ -91,7 +92,8 @@ describe('Supabase Schema Validation', () => {
       const item = {
         id: 'item-uuid',
         roomId: 'room-uuid',
-        videoId: 'yt-video-id',
+        sourceId: 'yt-video-id',
+        source: 'youtube',
         title: 'Song',
         artist: 'Artist',
         duration: 200,

@@ -1,5 +1,13 @@
 # Changelog
 
+## Cycle #6 - 2026-03-18
+
+### Added
+- Democratic Winner Notifications (Toast) — shows the next track winner with a celebratory toast
+- Next Up Winner Countdown — provides visual feedback for upcoming track selection
+- Source-Agnostic Queue Architecture — added `source` metadata to queue items for future non-YouTube support
+- 2 new tests (unit + integration); total now 118 tests across 15 suites
+
 ## Cycle #5 - 2026-03-18
 
 ### Added

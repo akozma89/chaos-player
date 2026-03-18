@@ -70,7 +70,7 @@ describe('searchYouTube', () => {
 
     expect(results).toHaveLength(1)
     const result: YouTubeSearchResult = results[0]
-    expect(result.videoId).toBe('abc123')
+    expect(result.sourceId).toBe('abc123')
     expect(result.title).toBe('Test Song')
     expect(result.channelTitle).toBe('Test Artist')
     expect(result.duration).toBe(225)

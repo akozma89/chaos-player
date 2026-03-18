@@ -18,7 +18,8 @@ jest.mock('../lib/supabase', () => ({
 const makeItem = (overrides: Partial<QueueItem>): QueueItem => ({
   id: 'item-1',
   roomId: 'room-1',
-  videoId: 'v1',
+  sourceId: 'v1',
+  source: 'youtube',
   title: 'Track',
   artist: 'Artist',
   duration: 200,

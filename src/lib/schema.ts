@@ -15,6 +15,7 @@ export const INITIAL_TOKEN_AIRDROP = 10
 const VALID_QUEUE_STATUSES = ['pending', 'playing', 'completed', 'skipped'] as const
 const VALID_VOTE_TYPES = ['upvote', 'downvote'] as const
 const VALID_TOKEN_ACTIONS = ['skip', 'stop', 'boost'] as const
+const VALID_SOURCES = ['youtube', 'spotify'] as const
 
 export function validateRoom(room: unknown): room is Room {
   if (!room || typeof room !== 'object') return false
@@ -50,7 +51,8 @@ export function validateQueueItem(item: unknown): item is QueueItem {
   return (
     typeof q.id === 'string' &&
     typeof q.roomId === 'string' &&
-    typeof q.videoId === 'string' &&
+    typeof q.sourceId === 'string' &&
+    VALID_SOURCES.includes(q.source as (typeof VALID_SOURCES)[number]) &&
     typeof q.title === 'string' &&
     typeof q.artist === 'string' &&
     typeof q.duration === 'number' &&

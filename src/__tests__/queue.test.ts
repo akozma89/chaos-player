@@ -23,9 +23,9 @@ jest.mock('../lib/supabase', () => ({
 describe('computeQueueOrder', () => {
   it('should sort items by net votes descending', () => {
     const items: QueueItem[] = [
-      { id: '1', roomId: 'r', videoId: 'v1', title: 'A', artist: 'X', duration: 200, addedBy: 'u', addedAt: '', position: 2, upvotes: 1, downvotes: 3, status: 'pending' },
-      { id: '2', roomId: 'r', videoId: 'v2', title: 'B', artist: 'X', duration: 200, addedBy: 'u', addedAt: '', position: 0, upvotes: 5, downvotes: 1, status: 'pending' },
-      { id: '3', roomId: 'r', videoId: 'v3', title: 'C', artist: 'X', duration: 200, addedBy: 'u', addedAt: '', position: 1, upvotes: 3, downvotes: 1, status: 'pending' },
+      { id: '1', roomId: 'r', sourceId: 'v1', source: 'youtube', title: 'A', artist: 'X', duration: 200, addedBy: 'u', addedAt: '', position: 2, upvotes: 1, downvotes: 3, status: 'pending' },
+      { id: '2', roomId: 'r', sourceId: 'v2', source: 'youtube', title: 'B', artist: 'X', duration: 200, addedBy: 'u', addedAt: '', position: 0, upvotes: 5, downvotes: 1, status: 'pending' },
+      { id: '3', roomId: 'r', sourceId: 'v3', source: 'youtube', title: 'C', artist: 'X', duration: 200, addedBy: 'u', addedAt: '', position: 1, upvotes: 3, downvotes: 1, status: 'pending' },
     ]
 
     const sorted = computeQueueOrder(items)
@@ -38,8 +38,8 @@ describe('computeQueueOrder', () => {
 
   it('should only include pending items in order', () => {
     const items: QueueItem[] = [
-      { id: '1', roomId: 'r', videoId: 'v1', title: 'A', artist: 'X', duration: 200, addedBy: 'u', addedAt: '', position: 0, upvotes: 5, downvotes: 0, status: 'completed' },
-      { id: '2', roomId: 'r', videoId: 'v2', title: 'B', artist: 'X', duration: 200, addedBy: 'u', addedAt: '', position: 1, upvotes: 3, downvotes: 0, status: 'pending' },
+      { id: '1', roomId: 'r', sourceId: 'v1', source: 'youtube', title: 'A', artist: 'X', duration: 200, addedBy: 'u', addedAt: '', position: 0, upvotes: 5, downvotes: 0, status: 'completed' },
+      { id: '2', roomId: 'r', sourceId: 'v2', source: 'youtube', title: 'B', artist: 'X', duration: 200, addedBy: 'u', addedAt: '', position: 1, upvotes: 3, downvotes: 0, status: 'pending' },
     ]
 
     const sorted = computeQueueOrder(items)
@@ -50,8 +50,8 @@ describe('computeQueueOrder', () => {
 
   it('should break ties by addedAt timestamp (FIFO)', () => {
     const items: QueueItem[] = [
-      { id: '1', roomId: 'r', videoId: 'v1', title: 'A', artist: 'X', duration: 200, addedBy: 'u', addedAt: '2026-01-01T00:00:01Z', position: 0, upvotes: 3, downvotes: 1, status: 'pending' },
-      { id: '2', roomId: 'r', videoId: 'v2', title: 'B', artist: 'X', duration: 200, addedBy: 'u', addedAt: '2026-01-01T00:00:00Z', position: 1, upvotes: 3, downvotes: 1, status: 'pending' },
+      { id: '1', roomId: 'r', sourceId: 'v1', source: 'youtube', title: 'A', artist: 'X', duration: 200, addedBy: 'u', addedAt: '2026-01-01T00:00:01Z', position: 0, upvotes: 3, downvotes: 1, status: 'pending' },
+      { id: '2', roomId: 'r', sourceId: 'v2', source: 'youtube', title: 'B', artist: 'X', duration: 200, addedBy: 'u', addedAt: '2026-01-01T00:00:00Z', position: 1, upvotes: 3, downvotes: 1, status: 'pending' },
     ]
 
     const sorted = computeQueueOrder(items)
@@ -141,6 +141,7 @@ describe('addToQueue', () => {
       id: 'item-uuid',
       room_id: 'room-uuid',
       video_id: 'yt-id',
+      source: 'youtube',
       title: 'Test Song',
       artist: 'Test Artist',
       duration: 300,
@@ -162,7 +163,8 @@ describe('addToQueue', () => {
 
     const result = await addToQueue({
       roomId: 'room-uuid',
-      videoId: 'yt-id',
+      sourceId: 'yt-id',
+      source: 'youtube',
       title: 'Test Song',
       artist: 'Test Artist',
       duration: 300,
@@ -170,7 +172,7 @@ describe('addToQueue', () => {
     })
 
     expect(result.data).toBeDefined()
-    expect(result.data?.videoId).toBe('yt-id')
+    expect(result.data?.sourceId).toBe('yt-id')
     expect(result.error).toBeNull()
   })
 })

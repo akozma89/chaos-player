@@ -24,7 +24,8 @@ export interface Session {
 export interface QueueItem {
   id: string
   roomId: string
-  videoId: string
+  sourceId: string // e.g., YouTube video ID or Spotify URI
+  source: 'youtube' | 'spotify'
   title: string
   artist: string
   duration: number

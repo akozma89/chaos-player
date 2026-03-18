@@ -5,6 +5,7 @@ Democratic, gamified collaborative music player for social gatherings, remote te
 ## Features
 
 - **Democratic Queue**: Everyone votes on the next track
+- **Winner Notifications**: Real-time toast notifications for winning tracks
 - **Token Economy**: Skip, stop, or boost songs with earned tokens
 - **Real-time Sync**: Live updates across all participants
 - **Anonymous Join**: QR code or link-based instant access
@@ -89,7 +90,7 @@ npm test
 npm test:watch
 ```
 
-**Test Coverage (Cycle #5):** 116 tests across 15 suites — schema validation, room management, queue operations, Queue UI, YouTube search, YouTube player, auto-advance, YouTube error handling, queue integration, NowPlaying, leaderboard, moderation, Leaderboard UI, ModerationPanel UI, and Dynamic Room Page.
+**Test Coverage (Cycle #6):** 118 tests across 15 suites — schema validation, room management, queue operations, Queue UI, YouTube search, YouTube player, auto-advance, YouTube error handling, queue integration, NowPlaying, leaderboard, moderation, Leaderboard UI, ModerationPanel UI, Dynamic Room Page, and Winner Notifications.
 
 ### Building for Production
 

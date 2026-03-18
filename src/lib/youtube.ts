@@ -16,7 +16,7 @@ export interface YouTubeSearchResponse {
 }
 
 export interface YouTubeSearchResult {
-  videoId: string
+  sourceId: string
   title: string
   channelTitle: string
   duration: number // seconds
@@ -78,7 +78,7 @@ export async function searchYouTubeWithErrors(query: string): Promise<YouTubeSea
     }
 
     const results = items.map((item) => ({
-      videoId: item.id.videoId,
+      sourceId: item.id.videoId,
       title: item.snippet.title,
       channelTitle: item.snippet.channelTitle,
       thumbnailUrl: item.snippet.thumbnails?.medium?.url ?? '',
@@ -128,7 +128,7 @@ export async function searchYouTube(query: string): Promise<YouTubeSearchResult[
     }
 
     return items.map((item) => ({
-      videoId: item.id.videoId,
+      sourceId: item.id.videoId,
       title: item.snippet.title,
       channelTitle: item.snippet.channelTitle,
       thumbnailUrl: item.snippet.thumbnails?.medium?.url ?? '',

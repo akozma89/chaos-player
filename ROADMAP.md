@@ -2,7 +2,7 @@
 
 ```mermaid
 gantt
-  title Chaos Player Roadmap — Cycle 5
+  title Chaos Player Roadmap — Cycle 6
   dateFormat YYYY-MM-DD
 
   section Completed
@@ -10,20 +10,16 @@ gantt
     YouTube Search & Embedded Player            :done, c2, after c1, 4d
     Error Resilience & Integration Tests        :done, c3, after c2, 4d
     Leaderboards & Host Moderation              :done, c4, after c3, 5d
+    Room Page & Auto-Advance Orchestration      :done, c5, after c4, 5d
+    Source-Agnostic Queue & Winner Toasts       :done, c6, after c5, 3d
 
-  section Now (Cycle 5)
-    Room Page Orchestration (Missing Gap)       :crit, active, c5a, 2026-03-18, 3d
-    Democratic Auto-Advance Integration         :crit, active, c5b, after c5a, 3d
-    Next Up Winner Countdown & Notifications    :active, c5c, after c5b, 4d
-    GDPR Right to Erasure (Compliance)          :active, c5d, after c5c, 2d
+  section Next (Cycles 7-8)
+    Spotify Source Abstraction & Auth           :next1, 2026-03-18, 10d
+    Token Earn Events (Reward Loop)             :next2, after next1, 3d
+    GDPR Data Portability (Export API)          :next3, after next2, 2d
+    Mobile-optimized PWA                        :next4, after next3, 10d
 
-  section Next (Cycles 6-7)
-    Spotify Source Abstraction                  :next1, after c5d, 10d
-    Token Earn Events (Reward Loop)             :next2, after next1, 7d
-    Data Export API (GDPR compliance)           :next3, after next2, 5d
-
-  section Future (Cycle 8+)
-    Mobile-optimised PWA                        :future1, after next3, 14d
-    Multi-venue / Cafe Manager Dashboard        :future2, after future1, 10d
-    AI-assisted Queue Suggestions               :future3, after future2, 14d
+  section Future (Cycle 9+)
+    AI-assisted Queue Suggestions               :future1, after next3, 14d
+    Smart Playlist Generation (Theme-based)     :future2, after future1, 10d
 ```

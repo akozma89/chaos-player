@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { YoutubePlayer } from './YoutubePlayer'
-import { advanceQueue } from '../lib/autoAdvance'
+import { advanceQueue, pickNextTrack } from '../lib/autoAdvance'
 import type { QueueItem } from '../types'
 
 function AdvanceError({ message, onDismiss }: { message: string; onDismiss: () => void }) {
@@ -85,6 +85,10 @@ export function NowPlaying({
     onTrackChange?.(nextItem)
   }, [currentTrack, queue, onTrackChange])
 
+  const nextWinner = useMemo(() => pickNextTrack(queue), [queue])
+  const remainingTime = currentTrack ? currentTrack.duration - elapsed : 0
+  const showCountdown = remainingTime > 0 && remainingTime <= 10 && nextWinner
+
   if (!currentTrack) {
     return (
       <div
@@ -104,12 +108,18 @@ export function NowPlaying({
 
   return (
     <div data-testid="now-playing" className="flex flex-col gap-3">
-      <YoutubePlayer
-        videoId={currentTrack.videoId}
-        isHost={isHost}
-        onEnded={tryAdvance}
-        onSkip={tryAdvance}
-      />
+      {currentTrack.source === 'youtube' ? (
+        <YoutubePlayer
+          videoId={currentTrack.sourceId}
+          isHost={isHost}
+          onEnded={tryAdvance}
+          onSkip={tryAdvance}
+        />
+      ) : (
+        <div className="bg-zinc-800 aspect-video flex items-center justify-center rounded-lg border border-white/10">
+          <p className="text-zinc-500 text-sm">Spotify playback not yet implemented</p>
+        </div>
+      )}
 
       {/* Track info */}
       <div className="flex items-start justify-between">
@@ -131,6 +141,20 @@ export function NowPlaying({
           </button>
         )}
       </div>
+
+      {/* Next Up Winner Countdown */}
+      {showCountdown && (
+        <div className="flex items-center justify-between px-3 py-2 bg-violet-900/40 border border-violet-500/50 rounded animate-pulse shadow-[0_0_15px_rgba(139,92,246,0.3)]">
+          <div className="flex flex-col min-w-0">
+            <span className="text-[10px] text-violet-400 font-bold uppercase tracking-wider">Next Up:</span>
+            <span className="text-white text-xs font-medium truncate">{nextWinner.title}</span>
+          </div>
+          <div className="flex flex-col items-center">
+             <span className="text-violet-400 font-black text-lg leading-none">{remainingTime}s</span>
+             <span className="text-[8px] text-violet-300/70 uppercase">Winning</span>
+          </div>
+        </div>
+      )}
 
       {/* Progress bar */}
       <div className="flex items-center gap-2 text-xs text-gray-400">

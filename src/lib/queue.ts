@@ -21,7 +21,8 @@ export function computeQueueOrder(items: QueueItem[]): QueueItem[] {
 
 interface AddToQueueParams {
   roomId: string
-  videoId: string
+  sourceId: string
+  source: 'youtube' | 'spotify'
   title: string
   artist: string
   duration: number
@@ -38,7 +39,8 @@ export async function addToQueue(params: AddToQueueParams): Promise<AddToQueueRe
     .from('queue_items')
     .insert({
       room_id: params.roomId,
-      video_id: params.videoId,
+      video_id: params.sourceId,
+      source: params.source,
       title: params.title,
       artist: params.artist,
       duration: params.duration,
@@ -57,7 +59,8 @@ export async function addToQueue(params: AddToQueueParams): Promise<AddToQueueRe
     data: {
       id: data.id,
       roomId: data.room_id,
-      videoId: data.video_id,
+      sourceId: data.video_id,
+      source: data.source as 'youtube' | 'spotify',
       title: data.title,
       artist: data.artist,
       duration: data.duration,
@@ -141,7 +144,8 @@ export async function getQueueItems(roomId: string): Promise<GetQueueResult> {
   const items: QueueItem[] = (data ?? []).map((row: Record<string, unknown>) => ({
     id: row.id as string,
     roomId: row.room_id as string,
-    videoId: row.video_id as string,
+    sourceId: row.video_id as string,
+    source: (row.source as 'youtube' | 'spotify') || 'youtube',
     title: row.title as string,
     artist: row.artist as string,
     duration: row.duration as number,

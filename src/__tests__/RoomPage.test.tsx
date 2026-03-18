@@ -96,4 +96,37 @@ describe('RoomPage Orchestration', () => {
 
     expect(mockAdvanceQueue).toHaveBeenCalled();
   });
+
+  it('shows winner notification toast when track advances to a new track', async () => {
+    const track1 = { id: '1', title: 'Track 1', status: 'playing' };
+    const track2 = { id: '2', title: 'Track 2', status: 'playing' };
+    const { rerender } = render(<RoomPage />);
+
+    // Mock initial state: track1 playing
+    (useQueue as jest.Mock).mockReturnValue({
+      items: [track1],
+      playing: track1,
+      loading: false,
+      error: null,
+      advanceQueue: jest.fn(),
+    });
+
+    rerender(<RoomPage />);
+    
+    // Simulating advance to track2
+    (useQueue as jest.Mock).mockReturnValue({
+      items: [track2],
+      playing: track2,
+      loading: false,
+      error: null,
+      advanceQueue: jest.fn(),
+    });
+
+    rerender(<RoomPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Next Winner:/i)).toBeInTheDocument();
+      expect(screen.getByText('Track 2')).toBeInTheDocument();
+    });
+  });
 });
