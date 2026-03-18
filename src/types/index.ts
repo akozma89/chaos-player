@@ -50,6 +50,6 @@ export interface Token {
   userId: string
   roomId: string
   amount: number
-  action: 'skip' | 'stop' | 'boost'
+  action: 'skip' | 'stop' | 'boost' | 'earn'
   timestamp: string
 }

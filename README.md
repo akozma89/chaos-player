@@ -12,6 +12,8 @@ Democratic, gamified collaborative music player for social gatherings, remote te
 - **Host Controls**: Admins manage room, mute/remove users, and force-skip tracks
 - **Leaderboard**: Real-time session rankings by tokens spent and votes cast
 - **YouTube Integration**: Access millions of songs instantly
+- **Crowd Pleaser**: Earn +3 tokens when your queued song gets 3+ net votes
+- **Spotify OAuth**: Connect Spotify account with PKCE flow for multi-source search
 
 ## Tech Stack
 

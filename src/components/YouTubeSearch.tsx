@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { searchYouTubeWithErrors, YouTubeSearchResult, YouTubeError } from '../lib/youtube'
 import { addToQueue } from '../lib/queue'
 import { useDebounce } from '../hooks/useDebounce'
@@ -101,10 +102,12 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
                 key={result.sourceId}
                 className="flex items-center gap-3 p-2 border-b border-white/5 last:border-b-0 hover:bg-white/5 transition"
               >
-                <img
+                <Image
                   src={result.thumbnailUrl}
                   alt={result.title}
-                  className="w-16 h-12 object-cover rounded flex-shrink-0"
+                  width={64}
+                  height={48}
+                  className="object-cover rounded flex-shrink-0"
                 />
                 <div className="flex-grow min-w-0">
                   <p className="font-medium text-sm text-white truncate">{result.title}</p>

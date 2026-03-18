@@ -14,7 +14,7 @@ export const INITIAL_TOKEN_AIRDROP = 10
 
 const VALID_QUEUE_STATUSES = ['pending', 'playing', 'completed', 'skipped'] as const
 const VALID_VOTE_TYPES = ['upvote', 'downvote'] as const
-const VALID_TOKEN_ACTIONS = ['skip', 'stop', 'boost'] as const
+const VALID_TOKEN_ACTIONS = ['skip', 'stop', 'boost', 'earn'] as const
 const VALID_SOURCES = ['youtube', 'spotify'] as const
 
 export function validateRoom(room: unknown): room is Room {

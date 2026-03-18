@@ -1,5 +1,19 @@
 # Changelog
 
+## Cycle #8 - 2026-03-18
+
+### Added
+- Crowd Pleaser token earn loop: award +3 tokens when queued song reaches net +3 votes (`src/lib/tokenEarn.ts`)
+- `TokenEarnNotification` component with neon-green toast animation (`src/components/TokenEarnNotification.tsx`)
+- Spotify OAuth PKCE flow with authorization code + PKCE verifier (`src/lib/spotify.ts`)
+- Spotify search API integration returning `SourceSearchResult` type
+- Source-agnostic `SourceSearchResult` type in `src/types/index.ts`
+- 37 new tests: tokenEarn unit, TokenEarnNotification accessibility, Spotify OAuth/search unit tests
+
+### Changed
+- `YouTubeSearch` component now uses `next/image` `<Image />` instead of `<img>` for LCP optimization
+- Schema updated with `tokens` ledger entries and `crowd_pleaser` earn type
+
 ## Cycle #7 - 2026-03-18
 
 ### Added
