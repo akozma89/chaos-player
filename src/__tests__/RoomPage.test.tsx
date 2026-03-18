@@ -119,6 +119,9 @@ describe('RoomPage Orchestration', () => {
       loading: false,
       error: null,
       advanceQueue: jest.fn(),
+      pending: [],
+      vote: jest.fn(),
+      refresh: jest.fn(),
     });
 
     const { rerender } = render(<RoomPage />);
@@ -134,6 +137,9 @@ describe('RoomPage Orchestration', () => {
       loading: false,
       error: null,
       advanceQueue: jest.fn(),
+      pending: [],
+      vote: jest.fn(),
+      refresh: jest.fn(),
     });
 
     rerender(<RoomPage />);
@@ -142,5 +148,50 @@ describe('RoomPage Orchestration', () => {
       expect(screen.getByText(/Next Winner:/i)).toBeInTheDocument();
       expect(screen.getByText('Track 2')).toBeInTheDocument();
     });
+  });
+
+  it('winner toast does not re-appear when playing track data refreshes with the same track ID', async () => {
+    // Regression test: lastTrackId must be updated after each transition.
+    // Bug: setLastTrackId was only called when lastTrackId === null (initial startup).
+    // After first transition lastTrackId stayed stuck at track-1's ID, so any
+    // realtime refresh of playing (new object, same ID) re-triggered the toast.
+    const track1 = { id: 'track-1', title: 'Track 1', status: 'playing' };
+    const track2a = { id: 'track-2', title: 'Track 2', status: 'playing' };
+    // Same ID as track2a but a different JS object (simulates realtime vote update)
+    const track2b = { id: 'track-2', title: 'Track 2', status: 'playing' };
+
+    const makeQueueMock = (playing: any) => ({
+      items: playing ? [playing] : [],
+      playing,
+      pending: [],
+      loading: false,
+      error: null,
+      advanceQueue: jest.fn(),
+      vote: jest.fn(),
+      refresh: jest.fn(),
+    });
+
+    (useQueue as jest.Mock).mockReturnValue(makeQueueMock(track1));
+    const { rerender } = render(<RoomPage />);
+
+    await waitFor(() => expect(screen.getByTestId('mock-now-playing')).toBeInTheDocument());
+
+    // Advance to track2a → toast should appear
+    (useQueue as jest.Mock).mockReturnValue(makeQueueMock(track2a));
+    act(() => { rerender(<RoomPage />); });
+
+    await waitFor(() => expect(screen.getByTestId('winner-toast')).toBeInTheDocument());
+
+    // Dismiss the toast via the dismiss button
+    act(() => { screen.getByRole('button', { name: /Dismiss/i }).click(); });
+
+    await waitFor(() => expect(screen.queryByTestId('winner-toast')).not.toBeInTheDocument());
+
+    // Realtime refresh: same track-2 ID, new JS object (e.g., vote count updated)
+    (useQueue as jest.Mock).mockReturnValue(makeQueueMock(track2b));
+    act(() => { rerender(<RoomPage />); });
+
+    // Toast must NOT re-appear — same track is still playing
+    expect(screen.queryByTestId('winner-toast')).not.toBeInTheDocument();
   });
 });

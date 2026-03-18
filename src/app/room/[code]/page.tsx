@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQueue } from '../../../hooks/useQueue';
 import { getCurrentUser, signInAnonymously } from '../../../lib/auth';
@@ -16,7 +16,7 @@ const RoomPage = () => {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
-  const [lastTrackId, setLastTrackId] = useState<string | null>(null);
+  const lastTrackIdRef = useRef<string | null>(null);
   const [showWinnerToast, setShowWinnerToast] = useState(false);
 
   useEffect(() => {
@@ -49,19 +49,24 @@ const RoomPage = () => {
   const { playing, items, pending, loading, error, vote, advanceQueue } = useQueue(roomId || '', userId || '');
 
   // Winner Notification Logic
+  // Use a ref for lastTrackId so updates don't trigger re-renders/effect re-runs.
+  // Dependency on playing?.id (not the full object) prevents false triggers from
+  // realtime vote updates that refresh playing with a new object but same track ID.
   useEffect(() => {
-    if (playing && playing.id !== lastTrackId) {
-      // If we had a previous track, and this is a new one, show winner toast
-      if (lastTrackId !== null) {
-        setShowWinnerToast(true);
-        // Auto-dismiss after 8 seconds
-        const timer = setTimeout(() => setShowWinnerToast(false), 8000);
-        return () => clearTimeout(timer);
-      }
-      setLastTrackId(playing.id);
+    if (!playing) return;
+    const prevId = lastTrackIdRef.current;
+    if (playing.id === prevId) return;
+
+    lastTrackIdRef.current = playing.id;
+
+    if (prevId !== null) {
+      setShowWinnerToast(true);
+      const timer = setTimeout(() => setShowWinnerToast(false), 8000);
+      return () => clearTimeout(timer);
     }
-    return;
-  }, [playing, lastTrackId]);
+    return undefined;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing?.id]);
 
   if (!userId || !roomId || loading) {
     return (
