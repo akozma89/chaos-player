@@ -296,7 +296,7 @@ describe('YouTubeSearch', () => {
         expect(screen.getByText('Track 1')).toBeInTheDocument()
       })
 
-      const addBtn = screen.getAllByText('+ Add')[0]
+      const addBtn = screen.getAllByText('+')[0]
       fireEvent.click(addBtn)
 
       await waitFor(() => {

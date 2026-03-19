@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { getQueueItems, castVote, computeQueueOrder, computeVoteDelta, getUserVotes } from '../lib/queue'
-import { advanceQueue as libAdvanceQueue, promoteToPlaying } from '../lib/autoAdvance'
+import { advanceQueue as libAdvanceQueue, bootstrapQueue } from '../lib/autoAdvance'
 import { checkAndAwardCrowdPleaser } from '../lib/tokenEarn'
 import type { QueueItem } from '../types'
 
@@ -40,17 +40,24 @@ export function useQueue(roomId: string, userId: string) {
 
   // Bootstrap: if no track is playing, promote the top pending item
   const bootstrapQueueStartup = useCallback(async (loadedItems: QueueItem[]) => {
-    if (hasBootstrapped.current) return
-
     const isPlaying = loadedItems.some(i => i.status === 'playing')
     const hasPending = loadedItems.some(i => i.status === 'pending')
+
+    // If nothing is playing and nothing is pending, the queue is empty.
+    // Reset the guard so that when the next track is added, we can bootstrap it.
+    if (!isPlaying && !hasPending) {
+      hasBootstrapped.current = false
+      return
+    }
+
+    if (hasBootstrapped.current) return
 
     if (isPlaying || !hasPending) return
 
     // Mark as bootstrapped BEFORE call to prevent concurrent attempts during async call
     hasBootstrapped.current = true
 
-    const { error: bootstrapError } = await promoteToPlaying({ queue: loadedItems, roomId })
+    const { error: bootstrapError } = await bootstrapQueue({ queue: loadedItems, roomId })
     if (bootstrapError) {
       // Allow retry on subsequent update if it failed
       hasBootstrapped.current = false

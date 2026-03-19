@@ -43,18 +43,37 @@ interface PromoteToPlayingResult {
   error: Error | null
 }
 
-/** Bootstrap: promote top pending item to playing when no track is currently playing */
-export async function promoteToPlaying({
+/** 
+ * Promotes a specific item by ID to 'playing' state.
+ * Uses a SECURITY DEFINER RPC to bypass host-only UPDATE RLS.
+ */
+export async function promoteToPlaying(itemId: string, roomId: string): Promise<{ error: Error | null }> {
+  const { error } = await supabase.rpc('promote_item_by_id', { 
+    p_item_id: itemId, 
+    p_room_id: roomId 
+  })
+
+  if (error) {
+    return { error: new Error(error.message) }
+  }
+
+  return { error: null }
+}
+
+/** 
+ * Bootstrap: picks the top pending item and promotes it if nothing is playing.
+ */
+export async function bootstrapQueue({
   queue,
   roomId,
 }: PromoteToPlayingParams): Promise<PromoteToPlayingResult> {
   const candidate = pickNextTrack(queue)
   if (!candidate) return { promotedItem: null, error: null }
 
-  const { error } = await supabase.rpc('promote_to_playing', { p_room_id: roomId })
+  const { error } = await promoteToPlaying(candidate.id, roomId)
 
   if (error) {
-    return { promotedItem: null, error: new Error(error.message) }
+    return { promotedItem: null, error }
   }
 
   const promotedItem = {

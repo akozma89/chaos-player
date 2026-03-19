@@ -152,6 +152,7 @@ export async function castVote({ queueItemId, userId, roomId, type }: CastVotePa
     vote: {
       id: voteData.id,
       queueItemId: voteData.queue_item_id,
+      roomId: voteData.room_id,
       userId: voteData.user_id,
       type: voteData.type,
       timestamp: voteData.timestamp,
@@ -202,9 +203,9 @@ interface GetVotesResult {
 export async function getUserVotes(roomId: string, userId: string): Promise<GetVotesResult> {
   const { data, error } = await supabase
     .from('votes')
-    .select('queue_item_id, type, queue_items!inner(room_id)')
+    .select('queue_item_id, type')
     .eq('user_id', userId)
-    .eq('queue_items.room_id', roomId)
+    .eq('room_id', roomId)
 
   if (error) return { data: {}, error: new Error(error.message) }
 

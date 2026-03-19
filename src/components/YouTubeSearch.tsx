@@ -190,7 +190,7 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
       )}
 
       {results.length > 0 && (
-        <ul className="absolute z-50 w-full mt-1 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto">
+        <ul className="absolute z-50 w-full mt-2 bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto ring-1 ring-black/50">
           {results.map((result, index) => {
             const isAdded = addedIds.has(result.sourceId)
             const isAdding = addingIds.has(result.sourceId)
@@ -202,33 +202,34 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
                   ref={(el) => { itemRefs.current[index] = el }}
                   onClick={() => handleAdd(result)}
                   disabled={isAdding || isAdded}
-                  className={`w-full flex items-center gap-3 p-2 border-b border-white/5 last:border-b-0 transition text-left ${
+                  className={`w-full flex items-center gap-3 p-2.5 border-b border-white/5 last:border-b-0 transition text-left group ${
                     isSelected ? 'bg-white/10' : 'hover:bg-white/5'
                   }`}
                 >
-                  <Image
-                    src={result.thumbnailUrl}
-                    alt={result.title}
-                    width={64}
-                    height={48}
-                    className="object-cover rounded flex-shrink-0"
-                  />
-                  <div className="flex-grow min-w-0">
-                    <p className="font-medium text-sm text-white truncate">{result.title}</p>
-                    <p className="text-xs text-zinc-400 truncate">{result.channelTitle}</p>
-                    <p className="text-xs text-zinc-500">{formatDuration(result.duration)}</p>
+                  <div className="relative w-16 h-12 flex-shrink-0">
+                    <Image
+                      src={result.thumbnailUrl}
+                      alt={result.title}
+                      fill
+                      className="object-cover rounded"
+                    />
                   </div>
-                  <div
-                    className={`flex-shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
+                  <div className="flex-grow min-w-0">
+                    <p className="font-semibold text-sm text-white truncate group-hover:text-neon-blue transition-colors">{result.title}</p>
+                    <p className="text-xs text-zinc-400 truncate">{result.channelTitle}</p>
+                    <p className="text-xs text-zinc-500 font-mono mt-0.5">{formatDuration(result.duration)}</p>
+                  </div>
+                  <span
+                    className={`flex-shrink-0 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
                       isAdded
                         ? 'bg-neon-green/20 text-neon-green border border-neon-green/30 cursor-default'
                         : isAdding
                           ? 'bg-neon-blue/10 text-neon-blue border border-neon-blue/20 cursor-wait'
-                          : 'bg-neon-blue/10 text-neon-blue border border-neon-blue/20 hover:bg-neon-blue/20'
+                          : 'bg-white/5 text-zinc-400 border border-white/10 group-hover:bg-neon-blue/20 group-hover:text-neon-blue group-hover:border-neon-blue/30'
                     }`}
                   >
-                    {isAdded ? '✓ Added' : isAdding ? '...' : '+ Add'}
-                  </div>
+                    {isAdded ? '✓' : isAdding ? '...' : '+'}
+                  </span>
                 </button>
               </li>
             )

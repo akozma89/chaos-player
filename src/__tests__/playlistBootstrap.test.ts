@@ -1,4 +1,4 @@
-import { promoteToPlaying, advanceQueue, pickNextTrack } from '../lib/autoAdvance'
+import { bootstrapQueue, advanceQueue, pickNextTrack } from '../lib/autoAdvance'
 import { supabase } from '../lib/supabase'
 import type { QueueItem } from '../types'
 
@@ -31,10 +31,10 @@ describe('playlist bootstrap and advance race conditions', () => {
     jest.clearAllMocks()
   })
 
-  describe('promoteToPlaying (Bootstrap)', () => {
+  describe('bootstrapQueue', () => {
     it('should NOT call RPC if no pending items', async () => {
       const queue: QueueItem[] = []
-      const result = await promoteToPlaying({ queue, roomId: 'room-1' })
+      const result = await bootstrapQueue({ queue, roomId: 'room-1' })
       expect(supabase.rpc).not.toHaveBeenCalled()
       expect(result.promotedItem).toBeNull()
     })
@@ -43,9 +43,9 @@ describe('playlist bootstrap and advance race conditions', () => {
       const queue = [makeItem({ id: '1', status: 'pending' })]
       ;(supabase.rpc as jest.Mock).mockResolvedValue({ error: null })
       
-      const result = await promoteToPlaying({ queue, roomId: 'room-1' })
+      const result = await bootstrapQueue({ queue, roomId: 'room-1' })
       
-      expect(supabase.rpc).toHaveBeenCalledWith('promote_to_playing', { p_room_id: 'room-1' })
+      expect(supabase.rpc).toHaveBeenCalledWith('promote_item_by_id', { p_item_id: '1', p_room_id: 'room-1' })
       expect(result.promotedItem?.id).toBe('1')
     })
 
@@ -53,7 +53,7 @@ describe('playlist bootstrap and advance race conditions', () => {
       const queue = [makeItem({ id: '1', status: 'pending' })]
       ;(supabase.rpc as jest.Mock).mockResolvedValue({ error: { message: 'RPC Error' } })
       
-      const result = await promoteToPlaying({ queue, roomId: 'room-1' })
+      const result = await bootstrapQueue({ queue, roomId: 'room-1' })
       
       expect(result.error?.message).toBe('RPC Error')
       expect(result.promotedItem).toBeNull()

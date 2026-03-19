@@ -31,7 +31,7 @@ jest.mock('../lib/tokenEarn', () => ({
 
 jest.mock('../lib/autoAdvance', () => ({
   advanceQueue: jest.fn().mockResolvedValue({ error: null }),
-  promoteToPlaying: jest.fn().mockResolvedValue({ promotedItem: null, error: null }),
+  bootstrapQueue: jest.fn().mockResolvedValue({ promotedItem: null, error: null }),
 }))
 
 const makeItem = (overrides: Partial<QueueItem>): QueueItem => ({

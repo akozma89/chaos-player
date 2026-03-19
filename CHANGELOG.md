@@ -1,5 +1,19 @@
 # Changelog
 
+## Cycle #20 - 2026-03-19
+
+### Fixed
+- `playlistBootstrap.test.ts`: Fixed `promoteToPlaying` type error by switching to `bootstrapQueue` and updating argument signature
+- `playbackLoop.test.ts`: Removed unused `getQueueItems` and `supabase` imports to fix lint/type errors
+- `schema.test.ts`: Added missing `roomId` to `Vote` object to satisfy TypeScript requirements
+- `useQueue.test.tsx`: Removed unused `hook` variable to fix lint error
+- `queue.ts`: Added missing `roomId` to `Vote` return object in `castVote` function
+- `useQueueActiveVote.test.tsx`: Updated `autoAdvance` mock to include `bootstrapQueue` (replacing `promoteToPlaying`)
+- `YouTubeSearch.test.tsx`: Updated button text expectation from `+ Add` to `+` to match implementation
+
+### Changed
+- `README.md` updated with latest test coverage stats (240 tests, 31 suites)
+
 ## Cycle #19 - 2026-03-19
 
 ### Added

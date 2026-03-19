@@ -42,6 +42,7 @@ export interface Vote {
   id: string
   queueItemId: string
   userId: string
+  roomId: string
   type: 'upvote' | 'downvote'
   timestamp: string
 }

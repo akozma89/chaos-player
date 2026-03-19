@@ -115,6 +115,7 @@ describe('Supabase Schema Validation', () => {
       const vote: Vote = {
         id: 'vote-uuid',
         queueItemId: 'item-uuid',
+        roomId: 'room-uuid',
         userId: 'user-uuid',
         type: 'upvote',
         timestamp: new Date().toISOString(),

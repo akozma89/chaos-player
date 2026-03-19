@@ -25,7 +25,7 @@ jest.mock('../lib/queue', () => ({
 
 jest.mock('../lib/autoAdvance', () => ({
   advanceQueue: jest.fn(),
-  promoteToPlaying: jest.fn(),
+  bootstrapQueue: jest.fn(),
 }))
 
 const makeItem = (overrides: Partial<QueueItem>): QueueItem => ({
@@ -51,19 +51,19 @@ describe('useQueue bootstrap', () => {
     jest.clearAllMocks()
   })
 
-  it('calls promoteToPlaying when queue loads and nothing is playing', async () => {
+  it('calls bootstrapQueue when queue loads and nothing is playing', async () => {
     const items = [makeItem({ id: '1', status: 'pending' })]
     ;(queueLib.getQueueItems as jest.Mock).mockResolvedValue({ data: items, error: null })
-    ;(autoAdvanceLib.promoteToPlaying as jest.Mock).mockResolvedValue({ promotedItem: items[0], error: null })
+    ;(autoAdvanceLib.bootstrapQueue as jest.Mock).mockResolvedValue({ promotedItem: items[0], error: null })
 
     await act(async () => {
       renderHook(() => useQueue('room-1', 'user-1'))
     })
 
-    expect(autoAdvanceLib.promoteToPlaying).toHaveBeenCalled()
+    expect(autoAdvanceLib.bootstrapQueue).toHaveBeenCalled()
   })
 
-  it('does NOT call promoteToPlaying when a track is already playing', async () => {
+  it('does NOT call bootstrapQueue when a track is already playing', async () => {
     const items = [
       makeItem({ id: '1', status: 'playing' }),
       makeItem({ id: '2', status: 'pending' }),
@@ -74,13 +74,13 @@ describe('useQueue bootstrap', () => {
       renderHook(() => useQueue('room-1', 'user-1'))
     })
 
-    expect(autoAdvanceLib.promoteToPlaying).not.toHaveBeenCalled()
+    expect(autoAdvanceLib.bootstrapQueue).not.toHaveBeenCalled()
   })
 
   it('only bootstraps once via guard even if multiple real-time updates occur with pending items', async () => {
     const items = [makeItem({ id: '1', status: 'pending' })]
     ;(queueLib.getQueueItems as jest.Mock).mockResolvedValue({ data: items, error: null })
-    ;(autoAdvanceLib.promoteToPlaying as jest.Mock).mockResolvedValue({ promotedItem: items[0], error: null })
+    ;(autoAdvanceLib.bootstrapQueue as jest.Mock).mockResolvedValue({ promotedItem: items[0], error: null })
 
     let onUpdate: any
     ;(supabase.channel as jest.Mock).mockReturnValue({
@@ -96,7 +96,7 @@ describe('useQueue bootstrap', () => {
     })
 
     // First load calls it once
-    expect(autoAdvanceLib.promoteToPlaying).toHaveBeenCalledTimes(1)
+    expect(autoAdvanceLib.bootstrapQueue).toHaveBeenCalledTimes(1)
 
     // Second real-time update should NOT call it again if we have a guard
     await act(async () => {
@@ -104,7 +104,7 @@ describe('useQueue bootstrap', () => {
     })
 
     // If it's 1, the guard works. If it's 2, the guard is missing or broken.
-    expect(autoAdvanceLib.promoteToPlaying).toHaveBeenCalledTimes(1)
+    expect(autoAdvanceLib.bootstrapQueue).toHaveBeenCalledTimes(1)
   })
 
   it('retries bootstrap on subsequent updates if previous attempt failed', async () => {
@@ -112,7 +112,7 @@ describe('useQueue bootstrap', () => {
     ;(queueLib.getQueueItems as jest.Mock).mockResolvedValue({ data: items, error: null })
     
     // First attempt fails
-    ;(autoAdvanceLib.promoteToPlaying as jest.Mock)
+    ;(autoAdvanceLib.bootstrapQueue as jest.Mock)
       .mockResolvedValueOnce({ promotedItem: null, error: new Error('Bootstrap failed') })
       .mockResolvedValueOnce({ promotedItem: items[0], error: null })
 
@@ -130,26 +130,26 @@ describe('useQueue bootstrap', () => {
     })
 
     // First load attempt
-    expect(autoAdvanceLib.promoteToPlaying).toHaveBeenCalledTimes(1)
+    expect(autoAdvanceLib.bootstrapQueue).toHaveBeenCalledTimes(1)
 
     // Second update should try again since the first failed
     await act(async () => {
       await onUpdate()
     })
 
-    expect(autoAdvanceLib.promoteToPlaying).toHaveBeenCalledTimes(2)
+    expect(autoAdvanceLib.bootstrapQueue).toHaveBeenCalledTimes(2)
   })
 
   it('prevents concurrent bootstrap calls within the same component', async () => {
     const items = [makeItem({ id: '1', status: 'pending' })]
     ;(queueLib.getQueueItems as jest.Mock).mockResolvedValue({ data: items, error: null })
     
-    // Slow promoteToPlaying
+    // Slow bootstrapQueue
     let resolvePromote: any
     const promotePromise = new Promise((resolve) => {
       resolvePromote = resolve
     })
-    ;(autoAdvanceLib.promoteToPlaying as jest.Mock).mockReturnValue(promotePromise)
+    ;(autoAdvanceLib.bootstrapQueue as jest.Mock).mockReturnValue(promotePromise)
 
     let hookResult: any
     await act(async () => {
@@ -157,7 +157,7 @@ describe('useQueue bootstrap', () => {
     })
 
     // One call should be in progress
-    expect(autoAdvanceLib.promoteToPlaying).toHaveBeenCalledTimes(1)
+    expect(autoAdvanceLib.bootstrapQueue).toHaveBeenCalledTimes(1)
 
     // Trigger another update immediately while first is still pending
     await act(async () => {
@@ -165,12 +165,59 @@ describe('useQueue bootstrap', () => {
     })
 
     // Should still only be 1 call
-    expect(autoAdvanceLib.promoteToPlaying).toHaveBeenCalledTimes(1)
+    expect(autoAdvanceLib.bootstrapQueue).toHaveBeenCalledTimes(1)
 
     // Resolve first call
     await act(async () => {
       resolvePromote({ promotedItem: items[0], error: null })
       await promotePromise
     })
+  })
+
+  it('allows bootstrap to re-run if queue becomes empty and then a track is added again', async () => {
+    // 1. Start empty
+    ;(queueLib.getQueueItems as jest.Mock).mockResolvedValue({ data: [], error: null })
+    
+    let onUpdate: any
+    ;(supabase.channel as jest.Mock).mockReturnValue({
+      on: jest.fn().mockImplementation((_event, _filter, callback) => {
+        onUpdate = callback
+        return { subscribe: jest.fn() }
+      }),
+      subscribe: jest.fn(),
+    })
+
+    await act(async () => {
+      renderHook(() => useQueue('room-1', 'user-1'))
+    })
+
+    expect(autoAdvanceLib.bootstrapQueue).not.toBeCalled()
+
+    // 2. Add first track
+    const items = [makeItem({ id: '1', status: 'pending' })]
+    ;(queueLib.getQueueItems as jest.Mock).mockResolvedValue({ data: items, error: null })
+    ;(autoAdvanceLib.bootstrapQueue as jest.Mock).mockResolvedValue({ promotedItem: items[0], error: null })
+
+    await act(async () => {
+      await onUpdate()
+    })
+
+    expect(autoAdvanceLib.bootstrapQueue).toHaveBeenCalledTimes(1)
+
+    // 3. Queue becomes empty (e.g. track finished and was pruned)
+    ;(queueLib.getQueueItems as jest.Mock).mockResolvedValue({ data: [], error: null })
+    await act(async () => {
+      await onUpdate()
+    })
+
+    // 4. Add another track - should bootstrap again because it was empty
+    const moreItems = [makeItem({ id: '2', status: 'pending' })]
+    ;(queueLib.getQueueItems as jest.Mock).mockResolvedValue({ data: moreItems, error: null })
+
+    await act(async () => {
+      await onUpdate()
+    })
+
+    expect(autoAdvanceLib.bootstrapQueue).toHaveBeenCalledTimes(2)
   })
 })
