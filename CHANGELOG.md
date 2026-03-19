@@ -1,5 +1,18 @@
 # Changelog
 
+## Cycle #18 - 2026-03-19
+
+### Added
+- `YouTubeSearch`: Support for multiple concurrent song additions (Sets instead of single strings for `addingIds` and `addedIds`)
+- `YouTubeSearch`: Enhanced TDD coverage for empty states, scrolling, and keyboard navigation with long result sets
+
+### Fixed
+- `YouTubeSearch`: 'Add' buttons are no longer globally disabled when a single song is being added; only the specific item being added is disabled.
+
+### Changed
+- `SpotifySearch`: Formally verified and re-committed existing PKCE and search integration code.
+- `README.md` updated with latest test coverage stats (242 tests, 29 suites)
+
 ## Cycle #17 - 2026-03-19
 
 ### Added

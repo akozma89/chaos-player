@@ -16,8 +16,8 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
   const [results, setResults] = useState<YouTubeSearchResult[]>([])
   const [error, setError] = useState<YouTubeError | null>(null)
   const [isSearching, setIsSearching] = useState(false)
-  const [addedId, setAddedId] = useState<string | null>(null)
-  const [addingId, setAddingId] = useState<string | null>(null)
+  const [addedIds, setAddedIds] = useState<Set<string>>(new Set())
+  const [addingIds, setAddingIds] = useState<Set<string>>(new Set())
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const debouncedQuery = useDebounce(query, 500)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -78,8 +78,11 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
 
   const handleAdd = useCallback(
     async (result: YouTubeSearchResult) => {
-      if (addingId || addedId === result.sourceId) return
-      setAddingId(result.sourceId)
+      const id = result.sourceId
+      if (addingIds.has(id) || addedIds.has(id)) return
+
+      setAddingIds((prev) => new Set(prev).add(id))
+
       await addToQueue({
         roomId,
         addedBy: userId,
@@ -89,14 +92,23 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
         artist: result.channelTitle,
         duration: result.duration,
       })
-      setAddedId(result.sourceId)
-      setAddingId(null)
-      // Clear adding status after timeout
+
+      setAddingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+      setAddedIds((prev) => new Set(prev).add(id))
+
       setTimeout(() => {
-        setAddedId(null)
+        setAddedIds((prev) => {
+          const next = new Set(prev)
+          next.delete(id)
+          return next
+        })
       }, 2000)
     },
-    [roomId, userId, addingId, addedId]
+    [roomId, userId, addingIds, addedIds]
   )
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -174,8 +186,8 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
       {results.length > 0 && (
         <ul className="absolute z-50 w-full mt-1 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto">
           {results.map((result, index) => {
-            const isAdded = addedId === result.sourceId
-            const isAdding = addingId === result.sourceId
+            const isAdded = addedIds.has(result.sourceId)
+            const isAdding = addingIds.has(result.sourceId)
             const isSelected = selectedIndex === index
 
             return (
@@ -183,7 +195,7 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
                 <button
                   ref={(el) => { itemRefs.current[index] = el }}
                   onClick={() => handleAdd(result)}
-                  disabled={isAdding || isAdded || addingId !== null}
+                  disabled={isAdding || isAdded}
                   className={`w-full flex items-center gap-3 p-2 border-b border-white/5 last:border-b-0 transition text-left ${
                     isSelected ? 'bg-white/10' : 'hover:bg-white/5'
                   }`}

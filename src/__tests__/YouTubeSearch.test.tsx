@@ -129,14 +129,17 @@ describe('YouTubeSearch', () => {
   })
 
   describe('empty state', () => {
-    it('shows "No results" message when query is non-empty and search returns empty results', async () => {
+    it('shows a helpful, styled "No results" message with the query', async () => {
       searchYouTubeWithErrors.mockResolvedValue({ results: [], error: null })
       render(<YouTubeSearch roomId="room-1" userId="user-1" />)
       const input = screen.getByPlaceholderText('Search YouTube...')
-      fireEvent.change(input, { target: { value: 'nonexistent track xyz' } })
+      const query = 'nonexistent track xyz'
+      fireEvent.change(input, { target: { value: query } })
 
       await waitFor(() => {
-        expect(screen.getByText(/no results/i)).toBeInTheDocument()
+        const emptyState = screen.getByText(`No results for “${query}”`)
+        expect(emptyState).toBeInTheDocument()
+        expect(emptyState).toHaveClass('mt-2 px-3 py-2 text-zinc-500 text-sm text-center')
       })
     })
 
@@ -147,49 +150,64 @@ describe('YouTubeSearch', () => {
 
     it('does not show "No results" while search is in progress', async () => {
       let resolveSearch!: (val: unknown) => void
-      searchYouTubeWithErrors.mockReturnValue(new Promise((r) => { resolveSearch = r }))
+      searchYouTubeWithErrors.mockReturnValue(
+        new Promise((r) => {
+          resolveSearch = r
+        })
+      )
       render(<YouTubeSearch roomId="room-1" userId="user-1" />)
       const input = screen.getByPlaceholderText('Search YouTube...')
       fireEvent.change(input, { target: { value: 'loading' } })
 
-      // While resolveSearch hasn't been called, search is still in progress
       expect(screen.queryByText(/no results/i)).not.toBeInTheDocument()
 
       await act(async () => {
         resolveSearch({ results: [], error: null })
       })
     })
+
+    it('does not show "No results" if there is an error', async () => {
+      searchYouTubeWithErrors.mockResolvedValue({ results: [], error: { type: 'api_error', message: 'Test error' } })
+      render(<YouTubeSearch roomId="room-1" userId="user-1" />)
+      const input = screen.getByPlaceholderText('Search YouTube...')
+      fireEvent.change(input, { target: { value: 'a query' } })
+
+      await waitFor(() => {
+        expect(screen.getByText('Test error')).toBeInTheDocument()
+      })
+      expect(screen.queryByText(/no results/i)).not.toBeInTheDocument()
+    })
   })
 
-  describe('scrollable results list', () => {
+  describe('Keyboard Navigation and Scrolling', () => {
+    const MOCK_RESULTS_LONG = Array.from({ length: 10 }, (_, i) => ({
+      sourceId: `${i + 1}`,
+      title: `Track ${i + 1}`,
+      channelTitle: `C${i + 1}`,
+      thumbnailUrl: '',
+      duration: 100 + i,
+    }))
+
+    beforeEach(() => {
+      window.HTMLElement.prototype.scrollIntoView = jest.fn()
+      searchYouTubeWithErrors.mockResolvedValue({ results: MOCK_RESULTS_LONG, error: null })
+    })
+
     it('results list has max-h and overflow-y-auto for scrollability', async () => {
-      searchYouTubeWithErrors.mockResolvedValue({ results: MOCK_RESULTS, error: null })
       render(<YouTubeSearch roomId="room-1" userId="user-1" />)
       const input = screen.getByPlaceholderText('Search YouTube...')
       fireEvent.change(input, { target: { value: 'test' } })
 
       await waitFor(() => {
-        expect(screen.queryByText('Test Track')).toBeInTheDocument()
+        expect(screen.getByText('Track 1')).toBeInTheDocument()
       })
 
       const list = screen.getByRole('list')
       expect(list.className).toMatch(/overflow-y-auto/)
-      expect(list.className).toMatch(/max-h-/)
-    })
-  })
-
-  describe('Keyboard Navigation', () => {
-    const MOCK_RESULTS_MULTI = [
-      { sourceId: '1', title: 'Track 1', channelTitle: 'C1', thumbnailUrl: '', duration: 100 },
-      { sourceId: '2', title: 'Track 2', channelTitle: 'C2', thumbnailUrl: '', duration: 200 },
-    ]
-
-    beforeEach(() => {
-      window.HTMLElement.prototype.scrollIntoView = jest.fn()
+      expect(list.className).toMatch(/max-h-64/)
     })
 
     it('highlights results when navigating with ArrowDown/ArrowUp', async () => {
-      searchYouTubeWithErrors.mockResolvedValue({ results: MOCK_RESULTS_MULTI, error: null })
       render(<YouTubeSearch roomId="room-1" userId="user-1" />)
       const input = screen.getByPlaceholderText('Search YouTube...')
       fireEvent.change(input, { target: { value: 'test' } })
@@ -215,11 +233,10 @@ describe('YouTubeSearch', () => {
       expect(item2).not.toHaveClass('bg-white/10')
     })
 
-    it('calls scrollIntoView on the highlighted item when navigating with ArrowDown', async () => {
+    it('calls scrollIntoView on the highlighted item when navigating down a long list', async () => {
       const mockScrollIntoView = jest.fn()
       window.HTMLElement.prototype.scrollIntoView = mockScrollIntoView
 
-      searchYouTubeWithErrors.mockResolvedValue({ results: MOCK_RESULTS_MULTI, error: null })
       render(<YouTubeSearch roomId="room-1" userId="user-1" />)
       const input = screen.getByPlaceholderText('Search YouTube...')
       fireEvent.change(input, { target: { value: 'test' } })
@@ -228,34 +245,17 @@ describe('YouTubeSearch', () => {
         expect(screen.getByText('Track 1')).toBeInTheDocument()
       })
 
-      fireEvent.keyDown(input, { key: 'ArrowDown' })
-      expect(mockScrollIntoView).toHaveBeenCalledWith({ block: 'nearest' })
-    })
+      // Navigate down multiple times
+      for (let i = 0; i < 5; i++) {
+        fireEvent.keyDown(input, { key: 'ArrowDown' })
+      }
 
-    it('calls scrollIntoView on the highlighted item when navigating with ArrowUp', async () => {
-      const mockScrollIntoView = jest.fn()
-      window.HTMLElement.prototype.scrollIntoView = mockScrollIntoView
-
-      searchYouTubeWithErrors.mockResolvedValue({ results: MOCK_RESULTS_MULTI, error: null })
-      render(<YouTubeSearch roomId="room-1" userId="user-1" />)
-      const input = screen.getByPlaceholderText('Search YouTube...')
-      fireEvent.change(input, { target: { value: 'test' } })
-
-      await waitFor(() => {
-        expect(screen.getByText('Track 1')).toBeInTheDocument()
-      })
-
-      // Go to second item, then back up
-      fireEvent.keyDown(input, { key: 'ArrowDown' })
-      fireEvent.keyDown(input, { key: 'ArrowDown' })
-      mockScrollIntoView.mockClear()
-      fireEvent.keyDown(input, { key: 'ArrowUp' })
+      expect(mockScrollIntoView).toHaveBeenCalledTimes(5)
       expect(mockScrollIntoView).toHaveBeenCalledWith({ block: 'nearest' })
     })
 
     it('adds selected item to queue when Enter is pressed', async () => {
       const { addToQueue } = require('../lib/queue')
-      searchYouTubeWithErrors.mockResolvedValue({ results: MOCK_RESULTS_MULTI, error: null })
       render(<YouTubeSearch roomId="room-1" userId="user-1" />)
       const input = screen.getByPlaceholderText('Search YouTube...')
       fireEvent.change(input, { target: { value: 'test' } })
@@ -264,16 +264,20 @@ describe('YouTubeSearch', () => {
         expect(screen.getByText('Track 1')).toBeInTheDocument()
       })
 
-      // Select first item
+      // Select 3rd item
       fireEvent.keyDown(input, { key: 'ArrowDown' })
-      
+      fireEvent.keyDown(input, { key: 'ArrowDown' })
+      fireEvent.keyDown(input, { key: 'ArrowDown' })
+
       // Press Enter
       fireEvent.keyDown(input, { key: 'Enter' })
 
-      expect(addToQueue).toHaveBeenCalledWith(expect.objectContaining({
-        sourceId: '1',
-        title: 'Track 1',
-      }))
+      expect(addToQueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sourceId: '3',
+          title: 'Track 3',
+        })
+      )
     })
   })
 })

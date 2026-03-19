@@ -1,90 +1,130 @@
-/**
- * Tests for ConnectSpotify component
- * - Renders connect button
- * - Initiates PKCE flow on click (stores verifier, redirects)
- * - Shows connected state when token present
- * - Disconnect clears session
- */
-import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import ConnectSpotify from '../components/ConnectSpotify'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import ConnectSpotify from '../components/ConnectSpotify';
+import {
+  generateCodeVerifier,
+  generateCodeChallenge,
+  buildSpotifyAuthUrl,
+} from '../lib/spotify';
+import { loadSession, clearSession } from '../lib/spotifySession';
 
-// Mock spotifySession
+// Mock dependencies
+jest.mock('../lib/spotify', () => ({
+  generateCodeVerifier: jest.fn(),
+  generateCodeChallenge: jest.fn(),
+  buildSpotifyAuthUrl: jest.fn(),
+}));
+
 jest.mock('../lib/spotifySession', () => ({
   loadSession: jest.fn(),
   clearSession: jest.fn(),
-  saveSession: jest.fn(),
-}))
+}));
 
-// Mock spotify lib
-jest.mock('../lib/spotify', () => ({
-  generateCodeVerifier: jest.fn().mockReturnValue('test-verifier-123'),
-  generateCodeChallenge: jest.fn().mockResolvedValue('test-challenge-abc'),
-  buildSpotifyAuthUrl: jest.fn().mockReturnValue('https://accounts.spotify.com/authorize?test'),
-}))
-
-const { loadSession, clearSession } = require('../lib/spotifySession')
+const mockLoadSession = loadSession as jest.Mock;
+const mockClearSession = clearSession as jest.Mock;
+const mockGenerateCodeVerifier = generateCodeVerifier as jest.Mock;
+const mockGenerateCodeChallenge = generateCodeChallenge as jest.Mock;
+const mockBuildSpotifyAuthUrl = buildSpotifyAuthUrl as jest.Mock;
 
 describe('ConnectSpotify', () => {
-  const mockOnConnected = jest.fn()
-  const mockOnDisconnected = jest.fn()
+  const mockOnConnected = jest.fn();
+  const mockOnDisconnected = jest.fn();
+  const clientId = 'test-client-id';
+  const redirectUri = 'http://localhost/callback';
+  const authUrl = 'https://spotify.com/auth';
 
   beforeEach(() => {
-    jest.clearAllMocks()
-    loadSession.mockReturnValue(null)
+    jest.clearAllMocks();
+    mockLoadSession.mockReturnValue(null);
+    mockGenerateCodeVerifier.mockReturnValue('test-verifier');
+    mockGenerateCodeChallenge.mockResolvedValue('test-challenge');
+    mockBuildSpotifyAuthUrl.mockReturnValue(authUrl);
     // Mock sessionStorage
     Object.defineProperty(window, 'sessionStorage', {
-      value: {
-        getItem: jest.fn(),
-        setItem: jest.fn(),
-        removeItem: jest.fn(),
-        clear: jest.fn(),
-      },
-      writable: true,
-    })
-    // Mock window.location.assign
-    delete (window as unknown as Record<string, unknown>).location
-    ;(window as unknown as Record<string, unknown>).location = { assign: jest.fn(), href: '' }
-  })
+        value: {
+          getItem: jest.fn(),
+          setItem: jest.fn(),
+          removeItem: jest.fn(),
+          clear: jest.fn(),
+        },
+        writable: true,
+      })
+  });
 
   it('renders "Connect Spotify" button when not connected', () => {
-    render(<ConnectSpotify clientId="cid" onConnected={mockOnConnected} onDisconnected={mockOnDisconnected} />)
-    expect(screen.getByRole('button', { name: /connect spotify/i })).toBeInTheDocument()
-  })
+    render(
+      <ConnectSpotify
+        clientId={clientId}
+        onConnected={mockOnConnected}
+        onDisconnected={mockOnDisconnected}
+      />
+    );
+    expect(screen.getByRole('button', { name: /Connect Spotify/i })).toBeInTheDocument();
+  });
 
   it('renders "Disconnect" button when session is active', () => {
-    loadSession.mockReturnValue({ accessToken: 'tok', refreshToken: 'ref', expiresAt: Date.now() + 3600000 })
-    render(<ConnectSpotify clientId="cid" onConnected={mockOnConnected} onDisconnected={mockOnDisconnected} />)
-    expect(screen.getByRole('button', { name: /disconnect/i })).toBeInTheDocument()
-  })
+    mockLoadSession.mockReturnValue({
+      accessToken: 'token',
+      refreshToken: 'refresh',
+      expiresAt: Date.now() + 3600000,
+    });
+    render(
+      <ConnectSpotify
+        clientId={clientId}
+        onConnected={mockOnConnected}
+        onDisconnected={mockOnDisconnected}
+      />
+    );
+    expect(screen.getByRole('button', { name: /Disconnect/i })).toBeInTheDocument();
+  });
 
-  it('stores code verifier in sessionStorage on connect click', async () => {
-    render(<ConnectSpotify clientId="cid" redirectUri="http://localhost/callback" onConnected={mockOnConnected} onDisconnected={mockOnDisconnected} />)
-    const btn = screen.getByRole('button', { name: /connect spotify/i })
-    fireEvent.click(btn)
-    await waitFor(() => {
-      expect(window.sessionStorage.setItem).toHaveBeenCalledWith('spotify_pkce_verifier', 'test-verifier-123')
-    })
-  })
+  it('initiates auth flow on connect click', async () => {
+    render(
+      <ConnectSpotify
+        clientId={clientId}
+        redirectUri={redirectUri}
+        onConnected={mockOnConnected}
+        onDisconnected={mockOnDisconnected}
+      />
+    );
 
-  it('calls buildSpotifyAuthUrl with clientId on connect click', async () => {
-    const { buildSpotifyAuthUrl } = require('../lib/spotify')
-    render(<ConnectSpotify clientId="test-client-id" redirectUri="http://localhost/callback" onConnected={mockOnConnected} onDisconnected={mockOnDisconnected} />)
-    const btn = screen.getByRole('button', { name: /connect spotify/i })
-    fireEvent.click(btn)
+    fireEvent.click(screen.getByRole('button', { name: /Connect Spotify/i }));
+
     await waitFor(() => {
-      expect(buildSpotifyAuthUrl).toHaveBeenCalledWith(expect.objectContaining({
-        clientId: 'test-client-id',
-      }))
-    })
-  })
+      expect(mockGenerateCodeVerifier).toHaveBeenCalled();
+      expect(sessionStorage.setItem).toHaveBeenCalledWith('spotify_pkce_verifier', 'test-verifier');
+    });
+
+    await waitFor(() => {
+      expect(mockGenerateCodeChallenge).toHaveBeenCalledWith('test-verifier');
+    });
+
+    await waitFor(() => {
+      expect(mockBuildSpotifyAuthUrl).toHaveBeenCalledWith(
+        expect.objectContaining({
+          clientId,
+          redirectUri,
+          codeChallenge: 'test-challenge',
+        })
+      );
+    });
+  });
 
   it('calls onDisconnected and clears session on disconnect click', () => {
-    loadSession.mockReturnValue({ accessToken: 'tok', refreshToken: 'ref', expiresAt: Date.now() + 3600000 })
-    render(<ConnectSpotify clientId="cid" onConnected={mockOnConnected} onDisconnected={mockOnDisconnected} />)
-    const btn = screen.getByRole('button', { name: /disconnect/i })
-    fireEvent.click(btn)
-    expect(clearSession).toHaveBeenCalled()
-    expect(mockOnDisconnected).toHaveBeenCalled()
-  })
-})
+    mockLoadSession.mockReturnValue({
+      accessToken: 'token',
+      expiresAt: Date.now() + 10000,
+    });
+    render(
+      <ConnectSpotify
+        clientId={clientId}
+        onConnected={mockOnConnected}
+        onDisconnected={mockOnDisconnected}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Disconnect/i }));
+
+    expect(mockClearSession).toHaveBeenCalled();
+    expect(mockOnDisconnected).toHaveBeenCalled();
+  });
+});
