@@ -21,6 +21,7 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const debouncedQuery = useDebounce(query, 500)
   const containerRef = useRef<HTMLDivElement>(null)
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
 
   useEffect(() => {
     async function search() {
@@ -108,10 +109,18 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
       setSelectedIndex(-1)
     } else if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : prev))
+      setSelectedIndex((prev) => {
+        const next = prev < results.length - 1 ? prev + 1 : prev
+        itemRefs.current[next]?.scrollIntoView({ block: 'nearest' })
+        return next
+      })
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
-      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev))
+      setSelectedIndex((prev) => {
+        const next = prev > 0 ? prev - 1 : prev
+        itemRefs.current[next]?.scrollIntoView({ block: 'nearest' })
+        return next
+      })
     } else if (e.key === 'Enter') {
       if (selectedIndex >= 0 && selectedIndex < results.length) {
         e.preventDefault()
@@ -159,8 +168,14 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
         </div>
       )}
 
+      {debouncedQuery && !isSearching && results.length === 0 && !error && (
+        <div className="mt-2 px-3 py-2 text-zinc-500 text-sm text-center">
+          No results for &ldquo;{debouncedQuery}&rdquo;
+        </div>
+      )}
+
       {results.length > 0 && (
-        <ul className="absolute z-50 w-full mt-1 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+        <ul className="absolute z-50 w-full mt-1 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto">
           {results.map((result, index) => {
             const isAdded = addedId === result.sourceId
             const isAdding = addingId === result.sourceId
@@ -169,6 +184,7 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
             return (
               <li key={result.sourceId}>
                 <button
+                  ref={(el) => { itemRefs.current[index] = el }}
                   onClick={() => handleAdd(result)}
                   disabled={isAdding || isAdded || addingId !== null}
                   className={`w-full flex items-center gap-3 p-2 border-b border-white/5 last:border-b-0 transition text-left ${

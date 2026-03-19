@@ -1,5 +1,18 @@
 # Changelog
 
+## Cycle #15 - 2026-03-19
+
+### Added
+- `YouTubeSearch`: Empty state message when search returns no results
+- `YouTubeSearch`: Scrollable bounded results list (`max-h-64 overflow-y-auto`) for long result sets
+- `YouTubeSearch`: `scrollIntoView` on ArrowDown/ArrowUp keyboard navigation to keep highlighted item visible
+
+### Fixed
+- `votes` table missing `room_id` column — schema bug causing slow RLS and broken Realtime filter (migration `006_votes_room_id.sql`)
+
+### Changed
+- `README.md` updated with latest test coverage stats (216 tests, 28 suites)
+
 ## Cycle #14 - 2026-03-19
 
 ### Added
