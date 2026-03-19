@@ -1,5 +1,24 @@
 # Changelog
 
+## Cycle #16 - 2026-03-19
+
+### Added
+- `YouTubeSearch`: Clearable input button (×) to reset search field
+- `YouTubeSearch`: Escape key dismisses results dropdown
+- `YouTubeSearch`: Outside-click dismisses results dropdown
+- `YouTubeSearch`: Keyboard arrow navigation with `scrollIntoView` keeps item visible
+- `autoAdvance`: `promoteToPlaying` RPC bootstrap — starts playlist when no track is playing
+- `useQueue`: `hasBootstrapped` guard prevents concurrent bootstrap calls
+
+### Fixed
+- `votes` table missing `room_id` column causing slow RLS join scans (migration `006_votes_room_id.sql`)
+- `getUserVotes` query not scoped to room, causing cross-room vote leakage
+- Playlist never starting when no track was currently playing
+- `YouTubeSearch` results dropdown hidden behind other elements (z-index fix)
+
+### Changed
+- 43 new tests added (25 unit, 18 component) — total: 216 passing, 2 skipped
+
 ## Cycle #15 - 2026-03-19
 
 ### Added
