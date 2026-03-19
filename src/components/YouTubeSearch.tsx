@@ -98,6 +98,12 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
         next.delete(id)
         return next
       })
+      
+      // Task 2: Close results and clear query immediately on selection
+      setResults([])
+      setQuery('')
+      setSelectedIndex(-1)
+
       setAddedIds((prev) => new Set(prev).add(id))
 
       setTimeout(() => {

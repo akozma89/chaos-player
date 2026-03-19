@@ -57,7 +57,13 @@ export async function promoteToPlaying({
     return { promotedItem: null, error: new Error(error.message) }
   }
 
-  return { promotedItem: candidate, error: null }
+  const promotedItem = {
+    ...candidate,
+    status: 'playing' as const,
+    playingSince: new Date().toISOString(),
+  }
+
+  return { promotedItem, error: null }
 }
 
 export async function advanceQueue({

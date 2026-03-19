@@ -8,15 +8,24 @@ import type { QueueItem, Vote } from '../types'
 
 // Compute optimistic vote count deltas given new vote and prior vote for same item
 export function computeVoteDelta(
-  newVote: 'upvote' | 'downvote',
+  newVote: 'upvote' | 'downvote' | null,
   prevVote: 'upvote' | 'downvote' | undefined
 ): { upvoteDelta: number; downvoteDelta: number } {
   if (!prevVote) {
+    if (newVote === null) return { upvoteDelta: 0, downvoteDelta: 0 }
     return {
       upvoteDelta: newVote === 'upvote' ? 1 : 0,
       downvoteDelta: newVote === 'downvote' ? 1 : 0,
     }
   }
+  
+  if (newVote === null) {
+    return {
+      upvoteDelta: prevVote === 'upvote' ? -1 : 0,
+      downvoteDelta: prevVote === 'downvote' ? -1 : 0,
+    }
+  }
+
   if (prevVote === newVote) {
     return { upvoteDelta: 0, downvoteDelta: 0 }
   }
@@ -101,7 +110,7 @@ interface CastVoteParams {
   queueItemId: string
   userId: string
   roomId: string
-  type: 'upvote' | 'downvote'
+  type: 'upvote' | 'downvote' | null
 }
 
 interface CastVoteResult {
@@ -110,6 +119,20 @@ interface CastVoteResult {
 }
 
 export async function castVote({ queueItemId, userId, roomId, type }: CastVoteParams): Promise<CastVoteResult> {
+  if (type === null) {
+    const { error: deleteError } = await supabase
+      .from('votes')
+      .delete()
+      .match({ queue_item_id: queueItemId, user_id: userId })
+
+    if (deleteError) return { vote: null, error: new Error(deleteError.message) }
+    
+    // Recompute vote counts via SECURITY DEFINER RPC
+    await supabase.rpc('update_vote_counts', { p_queue_item_id: queueItemId })
+    
+    return { vote: null, error: null }
+  }
+
   // Upsert vote (one vote per user per item - update if changed)
   const { data: voteData, error: voteError } = await supabase
     .from('votes')

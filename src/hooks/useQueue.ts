@@ -99,9 +99,10 @@ export function useQueue(roomId: string, userId: string) {
   const vote = useCallback(
     async (queueItemId: string, type: 'upvote' | 'downvote') => {
       const prevVote = userVotes[queueItemId]
-      const { upvoteDelta, downvoteDelta } = computeVoteDelta(type, prevVote)
+      const finalType = prevVote === type ? null : type
+      const { upvoteDelta, downvoteDelta } = computeVoteDelta(finalType, prevVote)
 
-      // Optimistic update using delta (handles vote flips correctly)
+      // Optimistic update using delta (handles vote flips and toggles correctly)
       setItems((prev) =>
         prev.map((item) => {
           if (item.id !== queueItemId) return item
@@ -113,13 +114,18 @@ export function useQueue(roomId: string, userId: string) {
         })
       )
 
-      // Record the new vote direction immediately in state
-      setUserVotes((prev) => ({
-        ...prev,
-        [queueItemId]: type,
-      }))
+      // Record the new vote direction (or removal) immediately in state
+      setUserVotes((prev) => {
+        const next = { ...prev }
+        if (finalType === null) {
+          delete next[queueItemId]
+        } else {
+          next[queueItemId] = finalType
+        }
+        return next
+      })
 
-      const { error: voteError } = await castVote({ queueItemId, userId, roomId, type })
+      const { error: voteError } = await castVote({ queueItemId, userId, roomId, type: finalType })
       if (voteError) {
         // Revert on error
         setUserVotes((prev) => {
@@ -130,16 +136,18 @@ export function useQueue(roomId: string, userId: string) {
         })
         await loadQueue()
       } else {
-        // Successful vote: check for crowd pleaser reward
-        const rewardResult = await checkAndAwardCrowdPleaser({ queueItemId, roomId })
-        if (rewardResult.awarded) {
-          setRecentReward({
-            amount: rewardResult.tokensAwarded,
-            userId: rewardResult.userId!,
-            queueItemId: queueItemId
-          })
-          // Auto-clear reward notification after 5s
-          setTimeout(() => setRecentReward(null), 5000)
+        // Successful vote (only check for reward if not a removal)
+        if (finalType !== null) {
+          const rewardResult = await checkAndAwardCrowdPleaser({ queueItemId, roomId })
+          if (rewardResult.awarded) {
+            setRecentReward({
+              amount: rewardResult.tokensAwarded,
+              userId: rewardResult.userId!,
+              queueItemId: queueItemId
+            })
+            // Auto-clear reward notification after 5s
+            setTimeout(() => setRecentReward(null), 5000)
+          }
         }
       }
     },

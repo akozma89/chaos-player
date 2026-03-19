@@ -1,5 +1,19 @@
 # Changelog
 
+## Cycle #19 - 2026-03-19
+
+### Added
+- `AutoplayGuard`: Interactive "Resume Playback" overlay to bypass browser autoplay restrictions
+- `vote-toggle-off-logic`: Users can now toggle off their active vote (click again to remove upvote/downvote)
+
+### Fixed
+- `playlist-never-starts-bootstrap-race`: Fixed race condition in `useQueue` where playlist failed to start on initial room load
+- `youtube-search-results-overlay-persistence`: Search results now correctly dismiss when clicking outside or selecting a song
+- `YoutubePlayer`: Fixed unused `act` import type error in tests
+
+### Changed
+- `README.md` updated with latest test coverage stats (246 tests, 30 suites)
+
 ## Cycle #18 - 2026-03-19
 
 ### Added

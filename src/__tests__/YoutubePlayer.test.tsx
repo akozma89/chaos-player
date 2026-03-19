@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
 jest.mock('../lib/youtubeIframe', () => ({
@@ -38,15 +38,24 @@ describe('YoutubePlayer', () => {
     expect(screen.getByTestId('yt-player-container')).toBeInTheDocument()
   })
 
-  it('calls unMute and setVolume when PLAYING state fires', async () => {
+  it('calls unMute and setVolume when PLAYING state fires and guard is cleared', async () => {
     render(<YoutubePlayer {...baseProps} />)
+    
+    // Guard should be visible
+    const joinBtn = screen.getByText(/JOIN & PLAY/i)
+    fireEvent.click(joinBtn)
+
     await waitFor(() => expect(mockPlayer.unMute).toHaveBeenCalled())
     expect(mockPlayer.setVolume).toHaveBeenCalledWith(100)
   })
 
-  it('calls onEnded when ENDED custom event fires on container', () => {
+  it('calls onEnded when ENDED custom event fires on container', async () => {
     const onEnded = jest.fn()
     const { container } = render(<YoutubePlayer {...baseProps} onEnded={onEnded} />)
+    
+    // Clear guard
+    fireEvent.click(screen.getByText(/JOIN & PLAY/i))
+
     const playerDiv = container.querySelector('[data-testid="yt-player-container"]')!
     fireEvent(playerDiv, new CustomEvent('yt-state-change', { detail: { state: 0 } }))
     expect(onEnded).toHaveBeenCalledTimes(1)
@@ -55,6 +64,10 @@ describe('YoutubePlayer', () => {
   it('seeks to offset when playingSince is set', async () => {
     const playingSince = new Date(Date.now() - 30_000).toISOString()
     render(<YoutubePlayer {...baseProps} playingSince={playingSince} />)
+
+    // Clear guard
+    fireEvent.click(screen.getByText(/JOIN & PLAY/i))
+
     await waitFor(() => expect(mockPlayer.seekTo).toHaveBeenCalledWith(expect.any(Number)))
   })
 

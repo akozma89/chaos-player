@@ -138,7 +138,7 @@ describe('promoteToPlaying', () => {
     jest.clearAllMocks()
   })
 
-  it('promotes highest net-vote pending item when no track is playing', async () => {
+  it('promotes highest net-vote pending item when no track is playing and sets playingSince', async () => {
     const { supabase } = require('../lib/supabase')
     supabase.rpc.mockResolvedValue({ data: null, error: null })
 
@@ -150,6 +150,7 @@ describe('promoteToPlaying', () => {
 
     expect(result.error).toBeNull()
     expect(result.promotedItem?.id).toBe('1')
+    expect(result.promotedItem?.playingSince).not.toBeNull()
     expect(supabase.rpc).toHaveBeenCalledWith('promote_to_playing', {
       p_room_id: 'room-1',
     })

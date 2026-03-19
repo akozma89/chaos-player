@@ -254,7 +254,7 @@ describe('YouTubeSearch', () => {
       expect(mockScrollIntoView).toHaveBeenCalledWith({ block: 'nearest' })
     })
 
-    it('adds selected item to queue when Enter is pressed', async () => {
+    it('adds selected item to queue when Enter is pressed and clears results/query', async () => {
       const { addToQueue } = require('../lib/queue')
       render(<YouTubeSearch roomId="room-1" userId="user-1" />)
       const input = screen.getByPlaceholderText('Search YouTube...')
@@ -264,20 +264,46 @@ describe('YouTubeSearch', () => {
         expect(screen.getByText('Track 1')).toBeInTheDocument()
       })
 
-      // Select 3rd item
-      fireEvent.keyDown(input, { key: 'ArrowDown' })
-      fireEvent.keyDown(input, { key: 'ArrowDown' })
+      // Select 1st item
       fireEvent.keyDown(input, { key: 'ArrowDown' })
 
       // Press Enter
       fireEvent.keyDown(input, { key: 'Enter' })
 
-      expect(addToQueue).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sourceId: '3',
-          title: 'Track 3',
-        })
-      )
+      await waitFor(() => {
+        expect(addToQueue).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sourceId: '1',
+            title: 'Track 1',
+          })
+        )
+      })
+
+      // Verify results and query are cleared
+      await waitFor(() => {
+        expect((input as HTMLInputElement).value).toBe('')
+        expect(screen.queryByText('Track 1')).not.toBeInTheDocument()
+      })
+    })
+
+    it('clears results/query when clicking Add button', async () => {
+      const { addToQueue } = require('../lib/queue')
+      render(<YouTubeSearch roomId="room-1" userId="user-1" />)
+      const input = screen.getByPlaceholderText('Search YouTube...')
+      fireEvent.change(input, { target: { value: 'test' } })
+
+      await waitFor(() => {
+        expect(screen.getByText('Track 1')).toBeInTheDocument()
+      })
+
+      const addBtn = screen.getAllByText('+ Add')[0]
+      fireEvent.click(addBtn)
+
+      await waitFor(() => {
+        expect(addToQueue).toHaveBeenCalled()
+        expect((input as HTMLInputElement).value).toBe('')
+        expect(screen.queryByText('Track 1')).not.toBeInTheDocument()
+      })
     })
   })
 })

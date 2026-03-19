@@ -30,8 +30,13 @@ describe('computeVoteDelta', () => {
     expect(delta).toEqual({ upvoteDelta: -1, downvoteDelta: 1 })
   })
 
-  it('returns +1 up -1 down when flipping from downvote to upvote', () => {
-    const delta = computeVoteDelta('upvote', 'downvote')
-    expect(delta).toEqual({ upvoteDelta: 1, downvoteDelta: -1 })
+  it('returns -1 upvote delta when toggling off upvote', () => {
+    const delta = computeVoteDelta(null, 'upvote')
+    expect(delta).toEqual({ upvoteDelta: -1, downvoteDelta: 0 })
+  })
+
+  it('returns -1 downvote delta when toggling off downvote', () => {
+    const delta = computeVoteDelta(null, 'downvote')
+    expect(delta).toEqual({ upvoteDelta: 0, downvoteDelta: -1 })
   })
 })

@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { loadYouTubeIframeAPI, YT_STATES, type YTPlayer } from '../lib/youtubeIframe'
+import { AutoplayGuard } from './AutoplayGuard'
 
 interface YoutubePlayerProps {
   videoId: string
@@ -14,6 +15,8 @@ interface YoutubePlayerProps {
 export function YoutubePlayer({ videoId, isHost, playingSince, onEnded, onSkip }: YoutubePlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const playerTargetRef = useRef<HTMLDivElement>(null)
+  const playerRef = useRef<YTPlayer | null>(null)
+  const [isAutoplayBlocked, setIsAutoplayBlocked] = useState(true)
 
   // Custom event listener — used by tests and internally to bubble onEnded
   useEffect(() => {
@@ -53,8 +56,11 @@ export function YoutubePlayer({ videoId, isHost, playingSince, onEnded, onSkip }
             if (e.data === YT_STATES.PLAYING) {
               // Video is now playing — unMute via postMessage (YouTube IFrame API),
               // NOT via element.muted which is blocked by the browser autoplay policy
-              player?.unMute()
-              player?.setVolume(100)
+              // only unMute if the guard is cleared
+              if (!isAutoplayBlocked) {
+                player?.unMute()
+                player?.setVolume(100)
+              }
             }
             if (e.data === YT_STATES.ENDED) {
               containerRef.current?.dispatchEvent(
@@ -64,31 +70,46 @@ export function YoutubePlayer({ videoId, isHost, playingSince, onEnded, onSkip }
           },
         },
       })
+      playerRef.current = player
     })
 
     return () => {
       active = false
       player?.destroy()
+      playerRef.current = null
     }
-  }, [videoId, playingSince])
+  }, [videoId, playingSince, isAutoplayBlocked])
+
+  const handleEnableAutoplay = () => {
+    setIsAutoplayBlocked(false)
+    if (playerRef.current) {
+      playerRef.current.unMute()
+      playerRef.current.setVolume(100)
+      playerRef.current.playVideo()
+    }
+  }
 
   return (
     <div
       ref={containerRef}
       data-testid="yt-player-container"
-      className="relative w-full aspect-video bg-black rounded-lg overflow-hidden"
+      className="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/5"
     >
       <div ref={playerTargetRef} className="w-full h-full" />
       {/* Transparent overlay blocks all iframe interaction */}
-      <div className="absolute inset-0" style={{ pointerEvents: 'all' }} />
+      <div className="absolute inset-0 z-10" style={{ pointerEvents: 'all' }} />
+
+      {isAutoplayBlocked && (
+        <AutoplayGuard onEnable={handleEnableAutoplay} />
+      )}
 
       {isHost && (
         <button
           data-testid="host-skip-btn"
           onClick={onSkip}
-          className="absolute bottom-3 right-3 px-3 py-1 bg-neon-pink text-black text-xs font-bold rounded-full hover:opacity-90 transition"
+          className="absolute bottom-3 right-3 z-20 px-4 py-2 bg-neon-pink/10 hover:bg-neon-pink/20 text-neon-pink border border-neon-pink/30 text-xs font-black rounded-full transition-all shadow-[0_0_15px_rgba(255,0,111,0.2)]"
         >
-          Skip ⏭
+          SKIP TRACK ⏭
         </button>
       )}
     </div>
