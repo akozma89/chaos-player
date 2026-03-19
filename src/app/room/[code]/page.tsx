@@ -10,14 +10,18 @@ import Leaderboard from '../../../components/Leaderboard';
 import { NowPlaying } from '../../../components/NowPlaying';
 import { WinnerToast } from '../../../components/WinnerToast';
 import YouTubeSearch from '../../../components/YouTubeSearch';
+import SpotifySearch from '../../../components/SpotifySearch';
 import { AutoplayGuard } from '../../../components/AutoplayGuard';
 import { TokenEarnNotification } from '../../../components/TokenEarnNotification';
+
+const SPOTIFY_CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID ?? ''
 
 const RoomPage = () => {
   const { code } = useParams();
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
+  const [activeSource, setActiveSource] = useState<'youtube' | 'spotify'>('youtube');
   const lastTrackIdRef = useRef<string | null>(null);
   const [showWinnerToast, setShowWinnerToast] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
@@ -146,11 +150,38 @@ const RoomPage = () => {
           {/* Right Column: Queue & Leaderboard */}
           <div className="space-y-8">
             <section className="relative z-10 bg-zinc-900/50 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
                 <span className="w-1.5 h-5 bg-neon-blue rounded-full block" />
                 ADD TRACK
               </h2>
-              <YouTubeSearch roomId={roomId} userId={userId} />
+              {/* Source toggle */}
+              <div className="flex gap-1 mb-4 p-1 bg-black/30 rounded-lg">
+                <button
+                  onClick={() => setActiveSource('youtube')}
+                  className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition ${
+                    activeSource === 'youtube'
+                      ? 'bg-neon-blue/20 text-neon-blue border border-neon-blue/30'
+                      : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  YouTube
+                </button>
+                <button
+                  onClick={() => setActiveSource('spotify')}
+                  className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition ${
+                    activeSource === 'spotify'
+                      ? 'bg-neon-green/20 text-neon-green border border-neon-green/30'
+                      : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  Spotify
+                </button>
+              </div>
+              {activeSource === 'youtube' ? (
+                <YouTubeSearch roomId={roomId} userId={userId} />
+              ) : (
+                <SpotifySearch roomId={roomId} userId={userId} clientId={SPOTIFY_CLIENT_ID} />
+              )}
             </section>
 
             <section className="bg-zinc-900/50 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">

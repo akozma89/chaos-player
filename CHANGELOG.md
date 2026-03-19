@@ -1,5 +1,20 @@
 # Changelog
 
+## Cycle #17 - 2026-03-19
+
+### Added
+- `spotifySession`: Token lifecycle management (save/load/clear via sessionStorage)
+- `ConnectSpotify`: PKCE OAuth flow — initiates Spotify auth redirect, disconnect support
+- `SpotifySearch`: Spotify track search with source toggle (YouTube / Spotify)
+- `/auth/spotify/callback`: PKCE callback page exchanging code for tokens (wrapped in Suspense)
+- Room page: YouTube/Spotify source toggle integrated into search UI
+
+### Fixed
+- `SpotifyCallbackPage`: Added `Suspense` boundary around `useSearchParams` to fix static prerender build error
+
+### Changed
+- 27 new tests across `spotifySession`, `ConnectSpotify`, and `SpotifySearch`
+
 ## Cycle #16 - 2026-03-19
 
 ### Added
