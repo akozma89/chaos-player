@@ -119,7 +119,7 @@ export function useQueue(roomId: string, userId: string) {
         [queueItemId]: type,
       }))
 
-      const { error: voteError } = await castVote({ queueItemId, userId, type })
+      const { error: voteError } = await castVote({ queueItemId, userId, roomId, type })
       if (voteError) {
         // Revert on error
         setUserVotes((prev) => {

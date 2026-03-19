@@ -103,14 +103,14 @@ describe('computeLeaderboard', () => {
     expect(board[0].engagementScore).toBe(0)
   })
 
-  it('excludes host from leaderboard', () => {
+  it('includes host in leaderboard', () => {
     const sessions = makeSessions([
       { userId: 'u1', username: 'Alice', isHost: true },
       { userId: 'u2', username: 'Bob', isHost: false },
     ])
     const board = computeLeaderboard(sessions, { u1: 10, u2: 5 }, {}, {})
-    expect(board.every((e) => e.userId !== 'u1')).toBe(true)
-    expect(board[0].userId).toBe('u2')
+    expect(board.some((e) => e.userId === 'u1')).toBe(true)
+    expect(board[0].userId).toBe('u1') // host ranks first by token spend
   })
 })
 

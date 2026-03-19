@@ -98,9 +98,6 @@ export default function SpotifySearch({ roomId, userId, clientId, accessToken: i
       setAddingId(null)
       setTimeout(() => {
         setAddedId(null)
-        setQuery('')
-        setResults([])
-        setSelectedIndex(-1)
       }, 2000)
     },
     [roomId, userId, addingId, addedId]

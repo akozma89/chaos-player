@@ -103,6 +103,7 @@ describe('castVote', () => {
     const result = await castVote({
       queueItemId: 'item-uuid',
       userId: 'user-uuid',
+      roomId: 'room-uuid',
       type: 'upvote',
     })
 
@@ -127,6 +128,7 @@ describe('castVote', () => {
     const result = await castVote({
       queueItemId: 'item-uuid',
       userId: 'user-uuid',
+      roomId: 'room-uuid',
       type: 'upvote',
     })
 

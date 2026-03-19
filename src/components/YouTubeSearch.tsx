@@ -91,12 +91,9 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
       })
       setAddedId(result.sourceId)
       setAddingId(null)
-      // Clear feedback after 2s then collapse results
+      // Clear adding status after timeout
       setTimeout(() => {
         setAddedId(null)
-        setQuery('')
-        setResults([])
-        setSelectedIndex(-1)
       }, 2000)
     },
     [roomId, userId, addingId, addedId]

@@ -10,27 +10,30 @@ export const YT_STATES = {
   CUED: 5,
 } as const
 
+export type YTPlayer = {
+  seekTo: (seconds: number) => void
+  playVideo: () => void
+  pauseVideo: () => void
+  stopVideo: () => void
+  unMute: () => void
+  setVolume: (volume: number) => void
+  destroy: () => void
+}
+
 declare global {
   interface Window {
     YT: {
       Player: new (
-        el: string | HTMLElement,
+        el: HTMLElement,
         opts: {
           videoId: string
           playerVars?: Record<string, unknown>
           events?: {
-            onReady?: (e: { target: unknown }) => void
+            onReady?: () => void
             onStateChange?: (e: { data: number }) => void
           }
         }
-      ) => {
-        loadVideoById: (videoId: string) => void
-        seekTo: (seconds: number) => void
-        pauseVideo: () => void
-        stopVideo: () => void
-        destroy: () => void
-      }
-      PlayerState: typeof YT_STATES
+      ) => YTPlayer
     }
     onYouTubeIframeAPIReady: (() => void) | undefined
   }

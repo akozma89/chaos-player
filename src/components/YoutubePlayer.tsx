@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { loadYouTubeIframeAPI, YT_STATES } from '../lib/youtubeIframe'
+import { loadYouTubeIframeAPI, YT_STATES, type YTPlayer } from '../lib/youtubeIframe'
 
 interface YoutubePlayerProps {
   videoId: string
@@ -13,42 +13,49 @@ interface YoutubePlayerProps {
 
 export function YoutubePlayer({ videoId, isHost, playingSince, onEnded, onSkip }: YoutubePlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const playerTargetRef = useRef<HTMLDivElement>(null)
 
-  // Listen for custom yt-state-change events (used in tests + internal dispatch)
+  // Custom event listener — used by tests and internally to bubble onEnded
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
-
     const handler = (e: Event) => {
-      const state = (e as CustomEvent<{ state: number }>).detail?.state
-      if (state === YT_STATES.ENDED && onEnded) {
-        onEnded()
+      if ((e as CustomEvent<{ state: number }>).detail?.state === YT_STATES.ENDED) {
+        onEnded?.()
       }
     }
-
     container.addEventListener('yt-state-change', handler)
     return () => container.removeEventListener('yt-state-change', handler)
   }, [onEnded])
 
-  // Load real IFrame player in browser
+  // IFrame API player lifecycle
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (typeof window === 'undefined' || !playerTargetRef.current) return
 
-    let player: InstanceType<typeof window.YT.Player> | null = null
+    let player: YTPlayer | null = null
+    let active = true
 
     loadYouTubeIframeAPI().then(() => {
-      if (!window.YT?.Player) return
-      player = new window.YT.Player('yt-player', {
+      if (!active || !window.YT?.Player || !playerTargetRef.current) return
+
+      player = new window.YT.Player(playerTargetRef.current, {
         videoId,
-        playerVars: { autoplay: 1, rel: 0, modestbranding: 1 },
+        playerVars: { autoplay: 1, mute: 1, rel: 0, modestbranding: 1, playsinline: 1 },
         events: {
           onReady: () => {
+            // Seek to the correct offset — still muted at this point
             if (playingSince) {
               const offsetSeconds = (Date.now() - new Date(playingSince).getTime()) / 1000
               if (offsetSeconds > 1) player?.seekTo(offsetSeconds)
             }
           },
           onStateChange: (e) => {
+            if (e.data === YT_STATES.PLAYING) {
+              // Video is now playing — unMute via postMessage (YouTube IFrame API),
+              // NOT via element.muted which is blocked by the browser autoplay policy
+              player?.unMute()
+              player?.setVolume(100)
+            }
             if (e.data === YT_STATES.ENDED) {
               containerRef.current?.dispatchEvent(
                 new CustomEvent('yt-state-change', { detail: { state: YT_STATES.ENDED } })
@@ -60,6 +67,7 @@ export function YoutubePlayer({ videoId, isHost, playingSince, onEnded, onSkip }
     })
 
     return () => {
+      active = false
       player?.destroy()
     }
   }, [videoId, playingSince])
@@ -70,7 +78,7 @@ export function YoutubePlayer({ videoId, isHost, playingSince, onEnded, onSkip }
       data-testid="yt-player-container"
       className="relative w-full aspect-video bg-black rounded-lg overflow-hidden"
     >
-      <div id="yt-player" className="w-full h-full" />
+      <div ref={playerTargetRef} className="w-full h-full" />
       {/* Transparent overlay blocks all iframe interaction */}
       <div className="absolute inset-0" style={{ pointerEvents: 'all' }} />
 

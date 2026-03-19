@@ -13,6 +13,7 @@ export interface LeaderboardEntry {
   tokensEarned: number
   voteCount: number
   engagementScore: number
+  isHost: boolean
 }
 
 interface GetLeaderboardResult {
@@ -22,7 +23,7 @@ interface GetLeaderboardResult {
 
 /**
  * Pure function: compute ranked leaderboard from sessions + aggregated data.
- * Hosts are excluded. Sorted by tokensSpent desc, then voteCount desc.
+ * Sorted by tokensSpent desc, then voteCount desc.
  */
 export function computeLeaderboard(
   sessions: Session[],
@@ -31,7 +32,6 @@ export function computeLeaderboard(
   voteCounts: Record<string, number>
 ): LeaderboardEntry[] {
   return sessions
-    .filter((s) => !s.isHost)
     .map((s) => {
       const tokensSpent = tokenSpends[s.userId] ?? 0
       const tokensEarned = tokenEarns[s.userId] ?? 0
@@ -44,6 +44,7 @@ export function computeLeaderboard(
         tokensEarned,
         voteCount,
         engagementScore: tokensSpent + voteCount,
+        isHost: s.isHost,
       }
     })
     .sort((a, b) => {

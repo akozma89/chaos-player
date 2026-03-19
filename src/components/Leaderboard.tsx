@@ -13,6 +13,11 @@ const MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' }
 export default function Leaderboard({ roomId }: LeaderboardProps) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 10
+
+  const totalPages = Math.max(1, Math.ceil(entries.length / ITEMS_PER_PAGE))
+  const paginatedEntries = entries.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
   const refresh = useCallback(async () => {
     const { data } = await getLeaderboard(roomId)
@@ -42,7 +47,7 @@ export default function Leaderboard({ roomId }: LeaderboardProps) {
         <p className="text-xs text-gray-500">No players yet.</p>
       ) : (
         <ol className="space-y-1.5">
-          {entries.map((entry) => (
+          {paginatedEntries.map((entry) => (
             <li
               key={entry.userId}
               className="flex items-center gap-3 rounded-lg bg-gray-800/60 px-3 py-2"
@@ -58,6 +63,11 @@ export default function Leaderboard({ roomId }: LeaderboardProps) {
               {/* Username */}
               <span className="flex-1 truncate text-sm font-semibold text-white">
                 {entry.username}
+                {entry.isHost && (
+                  <span className="ml-2 text-xs font-normal text-neon-pink/80">
+                    (owner)
+                  </span>
+                )}
               </span>
 
               {/* Stats */}
@@ -84,6 +94,29 @@ export default function Leaderboard({ roomId }: LeaderboardProps) {
             </li>
           ))}
         </ol>
+      )}
+
+      {/* Pagination Controls */}
+      {entries.length > ITEMS_PER_PAGE && (
+        <div className="flex items-center justify-between mt-4 text-sm">
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 bg-gray-800 text-gray-300 rounded hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            ← Prev
+          </button>
+          <span className="text-gray-500">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 bg-gray-800 text-gray-300 rounded hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            Next →
+          </button>
+        </div>
       )}
     </div>
   )

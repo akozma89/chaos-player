@@ -100,6 +100,7 @@ export async function addToQueue(params: AddToQueueParams): Promise<AddToQueueRe
 interface CastVoteParams {
   queueItemId: string
   userId: string
+  roomId: string
   type: 'upvote' | 'downvote'
 }
 
@@ -108,12 +109,12 @@ interface CastVoteResult {
   error: Error | null
 }
 
-export async function castVote({ queueItemId, userId, type }: CastVoteParams): Promise<CastVoteResult> {
+export async function castVote({ queueItemId, userId, roomId, type }: CastVoteParams): Promise<CastVoteResult> {
   // Upsert vote (one vote per user per item - update if changed)
   const { data: voteData, error: voteError } = await supabase
     .from('votes')
     .upsert(
-      { queue_item_id: queueItemId, user_id: userId, type, timestamp: new Date().toISOString() },
+      { queue_item_id: queueItemId, user_id: userId, room_id: roomId, type, timestamp: new Date().toISOString() },
       { onConflict: 'queue_item_id,user_id' }
     )
     .select()

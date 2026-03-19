@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
-import RoomPage from '../app/room/[code]/page';
+import RoomClient from '../app/room/[code]/RoomClient';
 import { useQueue } from '../hooks/useQueue';
 import { useParams, useRouter } from 'next/navigation';
 import { getCurrentUser, signInAnonymously } from '../lib/auth';
@@ -61,9 +61,9 @@ describe('RoomPage Orchestration', () => {
       advanceQueue: jest.fn(),
     });
 
-    render(<RoomPage />);
-    // Initially shows "Finding Room..." or "Loading Room..." during async init
-    expect(screen.getByText(/Finding Room|Authenticating|Loading Room/i)).toBeInTheDocument();
+    render(<RoomClient room={mockRoom} userId={mockUser.id} />);
+    // Initially shows "Loading Room..." 
+    expect(screen.getByText(/Loading Room/i)).toBeInTheDocument();
   });
 
   it('renders room components when data is loaded', async () => {
@@ -80,14 +80,13 @@ describe('RoomPage Orchestration', () => {
       vote: jest.fn(),
     });
 
-    render(<RoomPage />);
+    render(<RoomClient room={mockRoom} userId={mockUser.id} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('mock-now-playing')).toBeInTheDocument();
       expect(screen.getByTestId('mock-queue')).toBeInTheDocument();
       expect(screen.getByTestId('mock-leaderboard')).toBeInTheDocument();
-      // Use more flexible matcher for fragmented text
-      expect(screen.getByRole('heading', { name: /ROOM \/ TEST12/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /ROOM.*Test Room/i })).toBeInTheDocument();
     });
   });
 
@@ -106,7 +105,7 @@ describe('RoomPage Orchestration', () => {
       vote: jest.fn(),
     });
 
-    render(<RoomPage />);
+    render(<RoomClient room={mockRoom} userId={mockUser.id} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('advance-btn')).toBeInTheDocument();
@@ -134,7 +133,7 @@ describe('RoomPage Orchestration', () => {
       refresh: jest.fn(),
     });
 
-    const { rerender } = render(<RoomPage />);
+    const { rerender } = render(<RoomClient room={mockRoom} userId={mockUser.id} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('mock-now-playing')).toBeInTheDocument();
@@ -152,7 +151,7 @@ describe('RoomPage Orchestration', () => {
       refresh: jest.fn(),
     });
 
-    rerender(<RoomPage />);
+    rerender(<RoomClient room={mockRoom} userId={mockUser.id} />);
 
     await waitFor(() => {
       expect(screen.getByText(/Next Winner:/i)).toBeInTheDocument();
@@ -182,13 +181,13 @@ describe('RoomPage Orchestration', () => {
     });
 
     (useQueue as jest.Mock).mockReturnValue(makeQueueMock(track1));
-    const { rerender } = render(<RoomPage />);
+    const { rerender } = render(<RoomClient room={mockRoom} userId={mockUser.id} />);
 
     await waitFor(() => expect(screen.getByTestId('mock-now-playing')).toBeInTheDocument());
 
     // Advance to track2a → toast should appear
     (useQueue as jest.Mock).mockReturnValue(makeQueueMock(track2a));
-    act(() => { rerender(<RoomPage />); });
+    act(() => { rerender(<RoomClient room={mockRoom} userId={mockUser.id} />); });
 
     await waitFor(() => expect(screen.getByTestId('winner-toast')).toBeInTheDocument());
 
@@ -199,7 +198,7 @@ describe('RoomPage Orchestration', () => {
 
     // Realtime refresh: same track-2 ID, new JS object (e.g., vote count updated)
     (useQueue as jest.Mock).mockReturnValue(makeQueueMock(track2b));
-    act(() => { rerender(<RoomPage />); });
+    act(() => { rerender(<RoomClient room={mockRoom} userId={mockUser.id} />); });
 
     // Toast must NOT re-appear — same track is still playing
     expect(screen.queryByTestId('winner-toast')).not.toBeInTheDocument();

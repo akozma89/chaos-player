@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { CreateRoomForm } from '../components/CreateRoomForm'
 import { JoinRoomForm } from '../components/JoinRoomForm'
 
@@ -9,13 +10,15 @@ type View = 'home' | 'create' | 'join'
 export default function Home() {
   const [view, setView] = useState<View>('home')
 
+  const router = useRouter()
+
   function handleRoomCreated(code: string, _name: string) {
-    // Navigate to room page (will be implemented in next cycle)
-    window.location.href = `/room/${code}`
+    // Navigate to room page with cache-buster to prevent Next.js from caching previous redirect loop
+    router.push(`/room/${code}?t=${Date.now()}`)
   }
 
   function handleJoined(code: string, _sessionId: string) {
-    window.location.href = `/room/${code}`
+    router.push(`/room/${code}?t=${Date.now()}`)
   }
 
   if (view === 'create') {

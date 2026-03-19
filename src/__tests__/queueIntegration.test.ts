@@ -158,6 +158,7 @@ describe('Queue sync: add/remove/reorder', () => {
     const result = await castVote({
       queueItemId: 'item-1',
       userId: 'user-1',
+      roomId: 'room-1',
       type: 'upvote',
     })
 
@@ -203,7 +204,7 @@ describe('Queue sync: add/remove/reorder', () => {
       return {}
     })
 
-    const result = await castVote({ queueItemId: 'item-2', userId: 'user-1', type: 'upvote' })
+    const result = await castVote({ queueItemId: 'item-2', userId: 'user-1', roomId: 'room-1', type: 'upvote' })
     expect(result.error).toBeNull()
     expect(result.vote?.type).toBe('upvote')
 
