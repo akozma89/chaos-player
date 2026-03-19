@@ -78,7 +78,9 @@ const RoomClient = ({ room, userId }: RoomClientProps) => {
     );
   }
 
-  const completed = items.filter(i => i.status === 'completed');
+  const completed = items
+    .filter(i => i.status === 'completed')
+    .sort((a, b) => new Date(b.playingSince ?? b.addedAt).getTime() - new Date(a.playingSince ?? a.addedAt).getTime());
   const trackCount = pending.length + (playing ? 1 : 0);
 
   return (

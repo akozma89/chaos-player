@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createRoom } from '../lib/rooms'
 import { signInAnonymously } from '../lib/auth'
+import { useStoredUsername } from '../hooks/useStoredUsername'
 
 interface Props {
   onRoomCreated: (roomCode: string, roomName: string) => void
@@ -10,7 +11,7 @@ interface Props {
 
 export function CreateRoomForm({ onRoomCreated }: Props) {
   const [roomName, setRoomName] = useState('')
-  const [username, setUsername] = useState('')
+  const [username, setUsername] = useStoredUsername()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { joinRoom } from '../lib/rooms'
 import { signInAnonymously } from '../lib/auth'
+import { useStoredUsername } from '../hooks/useStoredUsername'
 
 interface Props {
   initialCode?: string
@@ -11,7 +12,7 @@ interface Props {
 
 export function JoinRoomForm({ initialCode = '', onJoined }: Props) {
   const [roomCode, setRoomCode] = useState(initialCode.toUpperCase())
-  const [username, setUsername] = useState('')
+  const [username, setUsername] = useStoredUsername()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
