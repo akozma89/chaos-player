@@ -10,10 +10,9 @@ interface RoomListProps {
   type: 'public' | 'joined' | 'owned'
   userId?: string
   search: string
-  onRoomClick?: (code: string) => void
 }
 
-export function RoomList({ type, userId, search, onRoomClick }: RoomListProps) {
+export function RoomList({ type, userId, search }: RoomListProps) {
   const [rooms, setRooms] = useState<(Room & { code: string })[]>([])
   const [page, setPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)

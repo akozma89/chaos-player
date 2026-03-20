@@ -48,18 +48,20 @@ describe('createRoom', () => {
       id: 'room-uuid',
       name: 'Party Room',
       code: 'ABC123',
-      hostId: 'host-uuid',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      isActive: true,
+      host_id: 'host-uuid',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_active: true,
+      is_public: true,
     }
 
-    supabase.from.mockReturnValue({
-      insert: jest.fn(() => ({
-        select: jest.fn(() => ({
-          single: jest.fn(() => ({ data: mockRoom, error: null })),
-        })),
-      })),
+    const mockSession = {
+      id: 'session-uuid',
+    }
+
+    supabase.rpc.mockResolvedValue({
+      data: { room: mockRoom, session: mockSession },
+      error: null,
     })
 
     const result = await createRoom({ name: 'Party Room', hostId: 'host-uuid', username: 'HostUser' })
@@ -67,17 +69,15 @@ describe('createRoom', () => {
     expect(result.data).toBeDefined()
     expect(result.error).toBeNull()
     expect(result.data?.name).toBe('Party Room')
+    expect(supabase.rpc).toHaveBeenCalledWith('create_room', expect.anything())
   })
 
   it('should return error when creation fails', async () => {
     const { supabase } = require('../lib/supabase')
 
-    supabase.from.mockReturnValue({
-      insert: jest.fn(() => ({
-        select: jest.fn(() => ({
-          single: jest.fn(() => ({ data: null, error: new Error('DB error') })),
-        })),
-      })),
+    supabase.rpc.mockResolvedValue({
+      data: null,
+      error: { message: 'DB error' },
     })
 
     const result = await createRoom({ name: 'Party Room', hostId: 'host-uuid', username: 'HostUser' })

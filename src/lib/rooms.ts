@@ -3,6 +3,7 @@
  */
 
 import { supabase } from './supabase'
+// @ts-ignore
 import { INITIAL_TOKEN_AIRDROP } from './schema'
 import type { Room, Session } from '../types'
 
