@@ -16,6 +16,7 @@ jest.mock('../lib/supabase', () => ({
       select: jest.fn(() => ({ eq: jest.fn(() => ({ single: jest.fn() })) })),
       update: jest.fn(() => ({ eq: jest.fn() })),
     })),
+    rpc: jest.fn(),
     channel: jest.fn(() => ({
       on: jest.fn(() => ({ subscribe: jest.fn() })),
     })),
@@ -94,41 +95,29 @@ describe('joinRoom', () => {
   it('should join an existing room anonymously and receive tokens', async () => {
     const { supabase } = require('../lib/supabase')
 
-    const mockRoom = {
-      id: 'room-uuid',
-      name: 'Party Room',
-      code: 'ABC123',
-      isActive: true,
+    const mockRpcResult = {
+      session: {
+        id: 'session-uuid',
+        room_id: 'room-uuid',
+        user_id: 'anon-user-uuid',
+        username: 'Guest1',
+        tokens: 10,
+        is_host: false,
+        joined_at: new Date().toISOString(),
+      },
+      room: {
+        id: 'room-uuid',
+        name: 'Party Room',
+        code: 'ABC123',
+        host_id: 'host-uuid',
+        is_public: true,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
     }
 
-    const mockSession = {
-      id: 'session-uuid',
-      roomId: 'room-uuid',
-      userId: 'anon-user-uuid',
-      username: 'Guest1',
-      tokens: 10,
-      isHost: false,
-      joinedAt: new Date().toISOString(),
-    }
-
-    supabase.from.mockReturnValue({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          single: jest.fn(() => ({ data: mockRoom, error: null })),
-          maybeSingle: jest.fn(() => ({ data: null, error: null })),
-        })),
-      })),
-      insert: jest.fn(() => ({
-        select: jest.fn(() => ({
-          single: jest.fn(() => ({ data: mockSession, error: null })),
-        })),
-      })),
-    })
-
-    supabase.auth.getUser.mockResolvedValue({
-      data: { user: { id: 'anon-user-uuid' } },
-      error: null,
-    })
+    supabase.rpc.mockResolvedValue({ data: mockRpcResult, error: null })
 
     const result = await joinRoom({ roomCode: 'ABC123', username: 'Guest1', userId: 'anon-user-uuid' })
 
@@ -140,13 +129,7 @@ describe('joinRoom', () => {
   it('should return error for inactive room', async () => {
     const { supabase } = require('../lib/supabase')
 
-    supabase.from.mockReturnValue({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          single: jest.fn(() => ({ data: null, error: { message: 'Not found' } })),
-        })),
-      })),
-    })
+    supabase.rpc.mockResolvedValue({ data: { error: 'Room not found' }, error: null })
 
     const result = await joinRoom({ roomCode: 'INVALID', username: 'Guest1', userId: 'anon-user' })
 

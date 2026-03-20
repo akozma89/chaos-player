@@ -9,6 +9,7 @@ export interface Room {
   createdAt: string
   updatedAt: string
   isActive: boolean
+  isPublic: boolean
 }
 
 export interface Session {

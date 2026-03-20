@@ -151,6 +151,42 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   }
 }
 
+export async function upgradeAnonymousUser(password: string): Promise<{ user: AppUser | null; error: Error | null }> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: new Error('Not authenticated') } as any
+
+  // Get current profile to get the username
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('username')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile?.username) return { user: null, error: new Error('No username found to upgrade') }
+
+  const email = `${profile.username.toLowerCase()}${EMAIL_DOMAIN}`
+
+  // Update user with email and password
+  const { data, error } = await supabase.auth.updateUser({
+    email,
+    password,
+  })
+
+  if (error) return { user: null, error: new Error(error.message) }
+  if (!data.user) return { user: null, error: new Error('Failed to upgrade user') }
+
+  // Update profile to mark as non-anonymous
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update({ is_anonymous: false })
+    .eq('id', user.id)
+
+  if (profileError) return { user: null, error: new Error(profileError.message) }
+
+  await syncAuthCookies();
+  return { user: { id: data.user.id, username: profile.username, is_anonymous: false }, error: null }
+}
+
 export async function signOut() {
   await supabase.auth.signOut()
   await syncAuthCookies()

@@ -18,6 +18,7 @@ describe('Supabase Schema Validation', () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         isActive: true,
+        isPublic: true,
       }
       expect(validateRoom(room)).toBe(true)
     })
