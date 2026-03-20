@@ -119,44 +119,19 @@ interface CastVoteResult {
 }
 
 export async function castVote({ queueItemId, userId, roomId, type }: CastVoteParams): Promise<CastVoteResult> {
-  if (type === null) {
-    const { error: deleteError } = await supabase
-      .from('votes')
-      .delete()
-      .match({ queue_item_id: queueItemId, user_id: userId })
-
-    if (deleteError) return { vote: null, error: new Error(deleteError.message) }
-    
-    // Recompute vote counts via SECURITY DEFINER RPC
-    await supabase.rpc('update_vote_counts', { p_queue_item_id: queueItemId })
-    
-    return { vote: null, error: null }
-  }
-
-  // Upsert vote (one vote per user per item - update if changed)
-  const { data: voteData, error: voteError } = await supabase
-    .from('votes')
-    .upsert(
-      { queue_item_id: queueItemId, user_id: userId, room_id: roomId, type, timestamp: new Date().toISOString() },
-      { onConflict: 'queue_item_id,user_id' }
-    )
-    .select()
-    .single()
+  const { error: voteError } = await supabase.rpc('cast_vote', {
+    p_queue_item_id: queueItemId,
+    p_user_id: userId,
+    p_room_id: roomId,
+    p_type: type,
+  })
 
   if (voteError) return { vote: null, error: new Error(voteError.message) }
 
-  // Recompute vote counts via SECURITY DEFINER RPC (bypasses host-only UPDATE policy)
-  await supabase.rpc('update_vote_counts', { p_queue_item_id: queueItemId })
-
+  // We no longer return the full vote object because we don't need it from the client
+  // the client already has it in its optimistic state.
   return {
-    vote: {
-      id: voteData.id,
-      queueItemId: voteData.queue_item_id,
-      roomId: voteData.room_id,
-      userId: voteData.user_id,
-      type: voteData.type,
-      timestamp: voteData.timestamp,
-    },
+    vote: null,
     error: null,
   }
 }

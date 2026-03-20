@@ -147,13 +147,7 @@ describe('Queue sync: add/remove/reorder', () => {
   it('castVote failure returns error without throwing', async () => {
     const { supabase } = require('../lib/supabase')
 
-    supabase.from.mockReturnValue({
-      upsert: jest.fn(() => ({
-        select: jest.fn(() => ({
-          single: jest.fn(() => ({ data: null, error: { message: 'RLS violation' } })),
-        })),
-      })),
-    })
+    supabase.rpc.mockResolvedValueOnce({ data: null, error: { message: 'RLS violation' } })
 
     const result = await castVote({
       queueItemId: 'item-1',
@@ -162,51 +156,18 @@ describe('Queue sync: add/remove/reorder', () => {
       type: 'upvote',
     })
 
-    expect(result.error).toBeTruthy()
+    expect(result.error).not.toBeNull()
     expect(result.vote).toBeNull()
   })
 
   it('queue reflects vote-driven reorder after castVote updates upvotes', async () => {
     const { supabase } = require('../lib/supabase')
 
-    supabase.from.mockImplementation((table: string) => {
-      if (table === 'votes') {
-        return {
-          upsert: jest.fn(() => ({
-            select: jest.fn(() => ({
-              single: jest.fn(() => ({
-                data: {
-                  id: 'vote-1',
-                  queue_item_id: 'item-2',
-                  user_id: 'user-1',
-                  type: 'upvote',
-                  timestamp: '',
-                },
-                error: null,
-              })),
-            })),
-          })),
-          select: jest.fn(() => ({
-            eq: jest.fn(() => ({
-              data: [{ type: 'upvote' }, { type: 'upvote' }, { type: 'upvote' }],
-              error: null,
-            })),
-          })),
-        }
-      }
-      if (table === 'queue_items') {
-        return {
-          update: jest.fn(() => ({
-            eq: jest.fn(() => ({ data: null, error: null })),
-          })),
-        }
-      }
-      return {}
-    })
+    supabase.rpc.mockResolvedValueOnce({ data: null, error: null })
 
     const result = await castVote({ queueItemId: 'item-2', userId: 'user-1', roomId: 'room-1', type: 'upvote' })
     expect(result.error).toBeNull()
-    expect(result.vote?.type).toBe('upvote')
+    expect(result.vote).toBeNull()
 
     // After vote, item-2 would have 3 upvotes → reorder
     const items: QueueItem[] = [

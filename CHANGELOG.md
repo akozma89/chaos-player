@@ -1,5 +1,20 @@
 # Changelog
 
+## Cycle #21 - 2026-03-20
+
+### Added
+- **Resilient Playlist Bootstrap**: `useQueue` now includes a 3-attempt exponential backoff retry for initial room bootstrap, preventing "dead rooms" due to transient network or DB errors.
+- **Public Room Discovery**: New `discoverPublicRooms` API and `rooms.test.ts` integration for fetching active public rooms, enabling a "Browse Rooms" feature.
+- **RPC-backed Voting**: Transitioned `castVote` to use the `cast_vote` Supabase RPC (migration `20260320102500_cast_vote_rpc.sql`) for atomic vote/count updates and better performance.
+
+### Fixed
+- `YouTubeSearch.test.tsx`: Updated z-index (`z-[100]`) and max-height (`max-h-80`) expectations to match the actual UI implementation.
+- `queueIntegration.test.ts`: Fixed `castVote` mocks and expectations to align with the new RPC-based implementation (returns `null` vote on success as client uses optimistic state).
+- `useQueue`: Fixed a lint warning regarding missing `loadQueueWithBootstrap` dependency in `useCallback`.
+
+### Changed
+- `README.md` updated with latest test coverage stats (244 tests, 31 suites).
+
 ## Cycle #20 - 2026-03-19
 
 ### Fixed

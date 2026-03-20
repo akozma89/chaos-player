@@ -19,6 +19,7 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set())
   const [addingIds, setAddingIds] = useState<Set<string>>(new Set())
   const [selectedIndex, setSelectedIndex] = useState(-1)
+  const [isFocused, setIsFocused] = useState(false)
   const debouncedQuery = useDebounce(query, 500)
   const containerRef = useRef<HTMLDivElement>(null)
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
@@ -60,8 +61,7 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
   useEffect(() => {
     function handleMouseDown(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setResults([])
-        setError(null)
+        setIsFocused(false)
         setSelectedIndex(-1)
       }
     }
@@ -151,18 +151,22 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
   }
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative z-50" ref={containerRef}>
       <div className="relative">
         <input
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onChange={(e) => {
+            setQuery(e.target.value)
+            setIsFocused(true)
+          }}
           onKeyDown={handleKeyDown}
           placeholder="Search YouTube..."
           className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-neon-blue/50 focus:ring-1 focus:ring-neon-blue/20 transition pr-16"
         />
         {isSearching && (
-          <div className="absolute right-8 top-1/2 -translate-y-1/2">
+          <div className="absolute right-10 top-1/2 -translate-y-1/2">
             <div className="w-4 h-4 border-2 border-neon-blue/30 border-t-neon-blue rounded-full animate-spin" />
           </div>
         )}
@@ -170,9 +174,9 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
           <button
             aria-label="Clear search"
             onClick={handleClear}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition text-lg leading-none"
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-zinc-300 hover:text-white transition-all text-sm"
           >
-            ×
+            ✕
           </button>
         )}
       </div>
@@ -189,8 +193,8 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
         </div>
       )}
 
-      {results.length > 0 && (
-        <ul className="absolute z-50 w-full mt-2 bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto ring-1 ring-black/50">
+      {isFocused && results.length > 0 && (
+        <ul className="absolute z-[100] w-full mt-2 bg-zinc-900/98 backdrop-blur-2xl border border-white/20 rounded-xl shadow-2xl overflow-hidden max-h-80 overflow-y-auto ring-1 ring-white/10">
           {results.map((result, index) => {
             const isAdded = addedIds.has(result.sourceId)
             const isAdding = addingIds.has(result.sourceId)

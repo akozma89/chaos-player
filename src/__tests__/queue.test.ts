@@ -68,37 +68,10 @@ describe('castVote', () => {
     jest.clearAllMocks()
   })
 
-  it('should upsert vote and update item vote counts', async () => {
+  it('should call cast_vote RPC with correct params', async () => {
     const { supabase } = require('../lib/supabase')
 
-    supabase.from.mockImplementation((table: string) => {
-      if (table === 'votes') {
-        return {
-          upsert: jest.fn(() => ({
-            select: jest.fn(() => ({
-              single: jest.fn(() => ({
-                data: { id: 'vote-uuid', queue_item_id: 'item-uuid', user_id: 'user-uuid', type: 'upvote', timestamp: '' },
-                error: null,
-              })),
-            })),
-          })),
-          select: jest.fn(() => ({
-            eq: jest.fn(() => ({
-              data: [{ type: 'upvote' }, { type: 'upvote' }, { type: 'downvote' }],
-              error: null,
-            })),
-          })),
-        }
-      }
-      if (table === 'queue_items') {
-        return {
-          update: jest.fn(() => ({
-            eq: jest.fn(() => ({ data: null, error: null })),
-          })),
-        }
-      }
-      return {}
-    })
+    supabase.rpc.mockResolvedValue({ data: null, error: null })
 
     const result = await castVote({
       queueItemId: 'item-uuid',
@@ -108,21 +81,20 @@ describe('castVote', () => {
     })
 
     expect(result.error).toBeNull()
-    expect(result.vote).toBeDefined()
+    expect(supabase.rpc).toHaveBeenCalledWith('cast_vote', {
+      p_queue_item_id: 'item-uuid',
+      p_user_id: 'user-uuid',
+      p_room_id: 'room-uuid',
+      p_type: 'upvote',
+    })
   })
 
-  it('should return error when vote fails', async () => {
+  it('should return error when RPC fails', async () => {
     const { supabase } = require('../lib/supabase')
 
-    supabase.from.mockReturnValue({
-      upsert: jest.fn(() => ({
-        select: jest.fn(() => ({
-          single: jest.fn(() => ({
-            data: null,
-            error: new Error('RLS violation'),
-          })),
-        })),
-      })),
+    supabase.rpc.mockResolvedValue({
+      data: null,
+      error: { message: 'Database error' },
     })
 
     const result = await castVote({
@@ -133,6 +105,7 @@ describe('castVote', () => {
     })
 
     expect(result.error).toBeTruthy()
+    expect(result.error?.message).toBe('Database error')
   })
 })
 

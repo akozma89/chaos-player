@@ -15,6 +15,8 @@ export function useQueue(roomId: string, userId: string) {
   const [recentReward, setRecentReward] = useState<{ amount: number; userId: string; queueItemId: string } | null>(null)
   // Guard to ensure we only ever trigger bootstrap once per session
   const hasBootstrapped = useRef(false)
+  const bootstrapRetryCount = useRef(0)
+  const bootstrapTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const loadQueue = useCallback(async () => {
     if (!roomId) return
@@ -44,9 +46,11 @@ export function useQueue(roomId: string, userId: string) {
     const hasPending = loadedItems.some(i => i.status === 'pending')
 
     // If nothing is playing and nothing is pending, the queue is empty.
-    // Reset the guard so that when the next track is added, we can bootstrap it.
+    // Reset the guard and retry count so that when the next track is added, we can bootstrap it.
     if (!isPlaying && !hasPending) {
       hasBootstrapped.current = false
+      bootstrapRetryCount.current = 0
+      if (bootstrapTimeoutRef.current) clearTimeout(bootstrapTimeoutRef.current)
       return
     }
 
@@ -57,12 +61,27 @@ export function useQueue(roomId: string, userId: string) {
     // Mark as bootstrapped BEFORE call to prevent concurrent attempts during async call
     hasBootstrapped.current = true
 
-    const { error: bootstrapError } = await bootstrapQueue({ queue: loadedItems, roomId })
-    if (bootstrapError) {
-      // Allow retry on subsequent update if it failed
-      hasBootstrapped.current = false
-      console.error('Bootstrap failed:', bootstrapError)
+    const performBootstrap = async () => {
+      const { error: bootstrapError } = await bootstrapQueue({ queue: loadedItems, roomId })
+      
+      if (bootstrapError) {
+        hasBootstrapped.current = false
+        console.error('Bootstrap failed:', bootstrapError)
+
+        if (bootstrapRetryCount.current < 3) {
+          bootstrapRetryCount.current += 1
+          console.log(`Retrying bootstrap (${bootstrapRetryCount.current}/3) in 2s...`)
+          bootstrapTimeoutRef.current = setTimeout(() => {
+            // Re-check state before retrying
+            loadQueueWithBootstrap()
+          }, 2000)
+        }
+      } else {
+        bootstrapRetryCount.current = 0
+      }
     }
+
+    performBootstrap()
   }, [roomId])
 
   const loadQueueWithBootstrap = useCallback(async () => {
@@ -99,6 +118,7 @@ export function useQueue(roomId: string, userId: string) {
       .subscribe()
 
     return () => {
+      if (bootstrapTimeoutRef.current) clearTimeout(bootstrapTimeoutRef.current)
       supabase.removeChannel(channel)
     }
   }, [roomId, loadQueueWithBootstrap, loadUserVotes])

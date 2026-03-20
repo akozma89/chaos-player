@@ -85,7 +85,7 @@ describe('YouTubeSearch', () => {
       })
 
       const list = screen.getByRole('list')
-      expect(list.className).toMatch(/z-50/)
+      expect(list.className).toMatch(/z-\[100\]/)
     })
   })
 
@@ -204,7 +204,7 @@ describe('YouTubeSearch', () => {
 
       const list = screen.getByRole('list')
       expect(list.className).toMatch(/overflow-y-auto/)
-      expect(list.className).toMatch(/max-h-64/)
+      expect(list.className).toMatch(/max-h-80/)
     })
 
     it('highlights results when navigating with ArrowDown/ArrowUp', async () => {

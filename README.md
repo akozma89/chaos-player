@@ -92,7 +92,7 @@ npm test
 npm test:watch
 ```
 
-**Test Coverage (Cycle #20):** 240 tests across 31 suites — schema validation, room management, queue operations, Queue UI, YouTube search, YouTube player, auto-advance, YouTube error handling, queue integration, NowPlaying, leaderboard, moderation, Leaderboard UI, ModerationPanel UI, Dynamic Room Page, Winner Notifications, token earn, GDPR, Spotify OAuth/search, resilient playlist bootstrap, and AutoplayGuard. Fixes for type safety and hook mocks.
+**Test Coverage (Cycle #21):** 244 tests across 31 suites — schema validation, room management, queue operations, Queue UI, YouTube search, YouTube player, auto-advance, YouTube error handling, queue integration, NowPlaying, leaderboard, moderation, Leaderboard UI, ModerationPanel UI, Dynamic Room Page, Winner Notifications, token earn, GDPR, Spotify OAuth/search, resilient playlist bootstrap (with exponential backoff retry), public room discovery, and AutoplayGuard. RPC-backed voting (`cast_vote` RPC) and UI z-index/max-height fixes.
 
 ### Building for Production
 

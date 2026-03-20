@@ -220,4 +220,37 @@ describe('useQueue bootstrap', () => {
 
     expect(autoAdvanceLib.bootstrapQueue).toHaveBeenCalledTimes(2)
   })
+
+  it('automatically retries bootstrap internally on failure after a delay', async () => {
+    jest.useFakeTimers()
+    const items = [makeItem({ id: '1', status: 'pending' })]
+    ;(queueLib.getQueueItems as jest.Mock).mockResolvedValue({ data: items, error: null })
+    
+    // Fail first 2, succeed on 3rd
+    ;(autoAdvanceLib.bootstrapQueue as jest.Mock)
+      .mockResolvedValueOnce({ error: new Error('Fail 1') })
+      .mockResolvedValueOnce({ error: new Error('Fail 2') })
+      .mockResolvedValueOnce({ promotedItem: items[0], error: null })
+
+    await act(async () => {
+      renderHook(() => useQueue('room-1', 'user-1'))
+    })
+
+    // 1st attempt
+    expect(autoAdvanceLib.bootstrapQueue).toHaveBeenCalledTimes(1)
+
+    // Advance timers for 1st retry
+    await act(async () => {
+      jest.advanceTimersByTime(2000)
+    })
+    expect(autoAdvanceLib.bootstrapQueue).toHaveBeenCalledTimes(2)
+
+    // Advance timers for 2nd retry
+    await act(async () => {
+      jest.advanceTimersByTime(2000)
+    })
+    expect(autoAdvanceLib.bootstrapQueue).toHaveBeenCalledTimes(3)
+
+    jest.useRealTimers()
+  })
 })
