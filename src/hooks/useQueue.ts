@@ -13,8 +13,16 @@ export function useQueue(roomId: string, userId: string) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [recentReward, setRecentReward] = useState<{ amount: number; userId: string; queueItemId: string } | null>(null)
-  // Guard to ensure we only ever trigger bootstrap once per session
-  const hasBootstrapped = useRef(false)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const isSyncingRef = useRef(false)
+
+  const setSyncing = useCallback((val: boolean) => {
+    isSyncingRef.current = val
+    setIsSyncing(val)
+  }, [])
+
+  // Resilient Bootstrap v2: track-specific guards
+  const lastBootstrappedId = useRef<string | null>(null)
   const bootstrapRetryCount = useRef(0)
   const bootstrapTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -40,62 +48,83 @@ export function useQueue(roomId: string, userId: string) {
     }
   }, [roomId, userId])
 
-  // Bootstrap: if no track is playing, promote the top pending item
-  const bootstrapQueueStartup = useCallback(async (loadedItems: QueueItem[]) => {
-    const isPlaying = loadedItems.some(i => i.status === 'playing')
-    const hasPending = loadedItems.some(i => i.status === 'pending')
-
-    // If nothing is playing and nothing is pending, the queue is empty.
-    // Reset the guard and retry count so that when the next track is added, we can bootstrap it.
-    if (!isPlaying && !hasPending) {
-      hasBootstrapped.current = false
-      bootstrapRetryCount.current = 0
-      if (bootstrapTimeoutRef.current) clearTimeout(bootstrapTimeoutRef.current)
-      return
-    }
-
-    if (hasBootstrapped.current) return
-
-    if (isPlaying || !hasPending) return
-
-    // Mark as bootstrapped BEFORE call to prevent concurrent attempts during async call
-    hasBootstrapped.current = true
-
-    const performBootstrap = async () => {
-      const { error: bootstrapError } = await bootstrapQueue({ queue: loadedItems, roomId })
-      
-      if (bootstrapError) {
-        hasBootstrapped.current = false
-        console.error('Bootstrap failed:', bootstrapError)
-
-        if (bootstrapRetryCount.current < 3) {
-          bootstrapRetryCount.current += 1
-          console.log(`Retrying bootstrap (${bootstrapRetryCount.current}/3) in 2s...`)
-          bootstrapTimeoutRef.current = setTimeout(() => {
-            // Re-check state before retrying
-            loadQueueWithBootstrap()
-          }, 2000)
-        }
-      } else {
-        bootstrapRetryCount.current = 0
-      }
-    }
-
-    performBootstrap()
-  }, [roomId])
-
   const loadQueueWithBootstrap = useCallback(async () => {
     if (!roomId) return
     const { data, error: fetchError } = await getQueueItems(roomId)
     if (fetchError) {
       setError(fetchError.message)
-    } else {
-      setItems(data)
-      await bootstrapQueueStartup(data)
+      setLoading(false)
+      return
     }
-    setLoading(false)
-  }, [roomId, bootstrapQueueStartup])
 
+    setItems(data)
+    setLoading(false)
+
+    // Bootstrap check: if no track is playing, promote the top pending item
+    const isPlaying = data.some(i => i.status === 'playing')
+    const pendingItems = computeQueueOrder(data.filter(i => i.status === 'pending'))
+    const topPending = pendingItems[0]
+
+    // If nothing is playing and nothing is pending, the queue is empty.
+    if (!isPlaying && !topPending) {
+      lastBootstrappedId.current = null
+      bootstrapRetryCount.current = 0
+      if (bootstrapTimeoutRef.current) clearTimeout(bootstrapTimeoutRef.current)
+      return
+    }
+
+    if (isPlaying || !topPending) {
+      setSyncing(false)
+      return
+    }
+
+    // If we already successfully bootstrapped this track or exhausted retries for it, skip
+    if (lastBootstrappedId.current === topPending.id && bootstrapRetryCount.current >= 3) {
+      return
+    }
+
+    // If we are already bootstrapping this track, don't start another one
+    if (lastBootstrappedId.current === topPending.id && isSyncingRef.current) {
+        return
+    }
+
+    // New track or retry
+    lastBootstrappedId.current = topPending.id
+    setSyncing(true)
+
+    const performBootstrap = async () => {
+      try {
+        const { error: bootstrapError } = await bootstrapQueue({ queue: data, roomId })
+
+        if (bootstrapError) {
+          console.error('Bootstrap failed:', bootstrapError)
+
+          if (bootstrapRetryCount.current < 3) {
+            bootstrapRetryCount.current += 1
+            console.log(`Retrying bootstrap (${bootstrapRetryCount.current}/3) in 2s...`)
+
+            // Reset sync state so the retry is not blocked by the guard
+            setSyncing(false)
+
+            bootstrapTimeoutRef.current = setTimeout(() => {
+              loadQueueWithBootstrap()
+            }, 2000)
+          } else {
+            setSyncing(false)
+          }
+        } else {
+          bootstrapRetryCount.current = 0
+          // SUCCESS: DON'T setSyncing(false) here. 
+          // Wait for the real-time update where isPlaying will be true, 
+          // which will trigger setSyncing(false) at the top of loadQueueWithBootstrap.
+        }
+      } catch (err) {
+        console.error('Bootstrap exception:', err)
+        setSyncing(false)
+      }
+    }
+    performBootstrap()
+  }, [roomId, setSyncing])
   useEffect(() => {
     if (!roomId) {
       setLoading(false)
@@ -212,6 +241,7 @@ export function useQueue(roomId: string, userId: string) {
     userVotes,
     recentReward,
     advanceQueue,
-    refresh: loadQueue 
+    isSyncing,
+    refresh: loadQueueWithBootstrap 
   }
 }

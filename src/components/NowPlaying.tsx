@@ -36,6 +36,7 @@ interface NowPlayingProps {
   queue: QueueItem[]
   isHost: boolean
   userId: string
+  isSyncing?: boolean
   onTrackChange?: (next: QueueItem | null) => void
   onTokenSkip?: () => void
 }
@@ -45,6 +46,7 @@ export function NowPlaying({
   queue,
   isHost,
   userId: _userId,
+  isSyncing = false,
   onTrackChange,
   onTokenSkip,
 }: NowPlayingProps) {
@@ -125,6 +127,7 @@ export function NowPlaying({
           videoId={currentTrack.sourceId}
           isHost={isHost}
           playingSince={currentTrack.playingSince}
+          isSyncing={isSyncing}
           onEnded={tryAdvance}
           onSkip={tryAdvance}
         />

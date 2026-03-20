@@ -1,13 +1,19 @@
 /**
  * Token Earn Loop - crowd pleaser mechanic
- * Award tokens to a track submitter when their track reaches net +3 votes.
- * Idempotent: only awards once per queue item.
+ * Award tokens to a track submitter when their track reaches net vote thresholds.
+ * Idempotent: each tier only awards once per queue item.
  */
 
 import { supabase } from './supabase'
 
 export const CROWD_PLEASER_THRESHOLD = 3
 export const CROWD_PLEASER_REWARD = 3
+
+export const REWARD_TIERS = [
+  { threshold: 15, amount: 15, name: 'Chaos Legend', tier: 3 },
+  { threshold: 7, amount: 7, name: 'Vibe Architect', tier: 2 },
+  { threshold: 3, amount: 3, name: 'Crowd Pleaser', tier: 1 },
+]
 
 export interface CrowdPleaseResult {
   awarded: boolean
@@ -23,8 +29,7 @@ interface CheckParams {
 }
 
 /**
- * Check if a queue item qualifies for crowd pleaser reward and award if so.
- * Safe to call on every vote — idempotent via token ledger check.
+ * Check if a queue item qualifies for tiered rewards and award the highest qualifying unearned tier.
  */
 export async function checkAndAwardCrowdPleaser({
   queueItemId,
@@ -41,22 +46,36 @@ export async function checkAndAwardCrowdPleaser({
     return { awarded: false, tokensAwarded: 0, error: new Error(queueError?.message ?? 'Queue item not found') }
   }
 
-  // 2. Check net votes meet threshold
+  // 2. Determine qualifying tiers based on net votes
   const netVotes = (queueItem.upvotes as number) - (queueItem.downvotes as number)
-  if (netVotes < CROWD_PLEASER_THRESHOLD) {
+  const qualifyingTier = REWARD_TIERS.find(t => netVotes >= t.threshold)
+
+  if (!qualifyingTier) {
     return { awarded: false, tokensAwarded: 0 }
   }
 
   const userId = queueItem.added_by as string
 
-  // 3. Idempotency check: has this item already earned tokens?
+  // 3. Idempotency check: has THIS tier already been earned for this item?
+  // We use metadata to store the tier level
   const { data: existingEarns } = await supabase
     .from('tokens')
     .select()
     .eq('queue_item_id', queueItemId)
     .eq('action', 'earn')
 
-  if (existingEarns && existingEarns.length > 0) {
+  // Check if any existing earn matches the tier name or level in metadata
+  const alreadyEarnedThisTier = existingEarns?.some(e => {
+      try {
+          const meta = typeof e.metadata === 'string' ? JSON.parse(e.metadata) : e.metadata
+          return meta?.tier === qualifyingTier.tier
+      } catch {
+          // Fallback for legacy items without metadata: assume tier 1 if amount is 3
+          return qualifyingTier.tier === 1 && e.amount === 3
+      }
+  })
+
+  if (alreadyEarnedThisTier) {
     return { awarded: false, alreadyAwarded: true, tokensAwarded: 0, userId }
   }
 
@@ -73,18 +92,19 @@ export async function checkAndAwardCrowdPleaser({
   // 5. Credit tokens to session
   await supabase
     .from('sessions')
-    .update({ tokens: currentTokens + CROWD_PLEASER_REWARD })
+    .update({ tokens: currentTokens + qualifyingTier.amount })
     .eq('id', session?.id)
 
   // 6. Record earn in token ledger
   await supabase.from('tokens').insert({
     user_id: userId,
     room_id: roomId,
-    amount: CROWD_PLEASER_REWARD,
+    amount: qualifyingTier.amount,
     action: 'earn',
     queue_item_id: queueItemId,
+    metadata: JSON.stringify({ tier: qualifyingTier.tier, tierName: qualifyingTier.name }),
     timestamp: new Date().toISOString(),
   })
 
-  return { awarded: true, tokensAwarded: CROWD_PLEASER_REWARD, userId }
+  return { awarded: true, tokensAwarded: qualifyingTier.amount, userId }
 }

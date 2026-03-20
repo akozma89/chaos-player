@@ -1,5 +1,20 @@
 # Changelog
 
+## Cycle #22 - 2026-03-20
+
+### Added
+- **Resilient Bootstrap v2**: Refactored `useQueue` to merge bootstrap logic into a single stable `loadQueueWithBootstrap` function. Introduced `isSyncingRef` to manage the operation lifecycle without triggering unnecessary effect resets or circular dependencies.
+- **Chaos Sync UI Overlay**: Added a visual indicator (`ChaosSyncOverlay`) to signal active track promotion during initial room load.
+- **Multi-tier Crowd Pleaser**: Updated `tokenEarn.ts` to support variable reward amounts based on vote thresholds (e.g., +10 tokens for "Vibe Master" bonus at 10+ net votes).
+
+### Fixed
+- `useQueue`: Resolved a circular dependency and missing hook dependencies (`isSyncing`, `loadQueueWithBootstrap`) that caused linting warnings.
+- `useQueueResilience.test.tsx`: Removed unused `rerender` variable to fix a TypeScript error.
+- `useQueue` Guard: Fixed a regression where internal bootstrap retries were blocked by the track guard because the syncing state wasn't being reset on failure.
+
+### Changed
+- `README.md` updated with latest test coverage stats (245 tests, 33 suites).
+
 ## Cycle #21 - 2026-03-20
 
 ### Added

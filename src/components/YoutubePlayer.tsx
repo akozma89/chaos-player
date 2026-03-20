@@ -3,16 +3,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { loadYouTubeIframeAPI, YT_STATES, type YTPlayer } from '../lib/youtubeIframe'
 import { AutoplayGuard } from './AutoplayGuard'
+import { ChaosSyncOverlay } from './ChaosSyncOverlay'
 
 interface YoutubePlayerProps {
   videoId: string
   isHost: boolean
   playingSince?: string | null
+  isSyncing?: boolean
   onEnded?: () => void
   onSkip?: () => void
 }
 
-export function YoutubePlayer({ videoId, isHost, playingSince, onEnded, onSkip }: YoutubePlayerProps) {
+export function YoutubePlayer({ videoId, isHost, playingSince, isSyncing = false, onEnded, onSkip }: YoutubePlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const playerTargetRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<YTPlayer | null>(null)
@@ -98,6 +100,8 @@ export function YoutubePlayer({ videoId, isHost, playingSince, onEnded, onSkip }
       <div ref={playerTargetRef} className="w-full h-full" />
       {/* Transparent overlay blocks all iframe interaction */}
       <div className="absolute inset-0 z-10" style={{ pointerEvents: 'all' }} />
+
+      <ChaosSyncOverlay isVisible={isSyncing} />
 
       {isAutoplayBlocked && (
         <AutoplayGuard onEnable={handleEnableAutoplay} />

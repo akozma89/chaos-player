@@ -2,7 +2,7 @@
 
 ```mermaid
 gantt
-  title Chaos Player Roadmap — Cycle 21
+  title Chaos Player Roadmap — Cycle 22
   dateFormat YYYY-MM-DD
 
   section Completed
@@ -16,22 +16,22 @@ gantt
     Spotify Source Abstraction & Auth (PKCE)    :done, c18, 2026-03-19, 5d
     Playlist Resilience (Autoplay Guard UI)     :done, c19, 2026-03-19, 5d
 
-  section Now (Cycle 21)
-    Resilient Bootstrap State Machine           :active, c21-1, 2026-03-20, 2d
-    Public Room Discovery (Homepage List)       :active, c21-2, after c21-1, 3d
-    Vibe Master Reward Tiers (Gamification)     :active, c21-3, after c21-2, 2d
+  section Now (Cycle 22)
+    Resilient Queue Orchestration (Epic)        :active, c22-1, 2026-03-20, 2d
+    Vibe-Driven Discovery & Gamification (Epic) :active, c22-2, after c22-1, 3d
+    Chaos Sync UI (Autoplay Helper)             :active, c22-3, after c22-2, 2d
 
-  section Next (Cycles 22-23)
+  section Next (Cycles 23-24)
     GDPR Data Portability (Export API)          :next1, 2026-03-25, 2d
     Mobile-optimized PWA                        :next2, after next1, 10d
     Smart Playlist Generation (Theme-based)     :next3, after next2, 10d
 
-  section Future (Cycle 24+)
+  section Future (Cycle 25+)
     AI-assisted Queue Suggestions               :future1, after next3, 14d
     Room Branding & Cosmetic Token Spends       :future2, after future1, 10d
 ```
 
-### Strategic Priorities (Cycle 21)
-1.  **Seamlessness**: Harden the bootstrap process to eliminate the "Playlist never starts" bug across all client scenarios.
-2.  **Reach**: Fulfill the top user request to list public rooms on the homepage, driving growth through discovery.
-3.  **Engagement**: Extend the gamification loop with multi-tiered token rewards for high-quality contributions.
+### Strategic Priorities (Cycle 22)
+1.  **Resilience**: Harden the bootstrap process to ensure the "Playlist never starts" bug is eliminated.
+2.  **Reach**: Transform the homepage into a dynamic discovery hub with trending "Vibe Score" rooms.
+3.  **Engagement**: Deeper gamification via tiered "Vibe Master" rewards (Architect, Legend).

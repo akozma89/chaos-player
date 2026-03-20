@@ -29,7 +29,7 @@ const RoomClient = ({ room, userId }: RoomClientProps) => {
   const lastTrackIdRef = useRef<string | null>(null);
   const [showWinnerToast, setShowWinnerToast] = useState(false);
 
-  const { playing, items, pending, loading, error, vote, userVotes, recentReward, refresh } = useQueue(room.id, userId);
+  const { playing, items, pending, loading, error, vote, userVotes, recentReward, isSyncing, refresh } = useQueue(room.id, userId);
 
   const reAddTrack = useCallback(async (item: typeof items[number]) => {
     await addToQueue({
@@ -127,6 +127,7 @@ const RoomClient = ({ room, userId }: RoomClientProps) => {
                 queue={items}
                 isHost={true} 
                 userId={userId}
+                isSyncing={isSyncing}
                 onTrackChange={() => refresh()}
               />
             </div>
