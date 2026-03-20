@@ -3,39 +3,39 @@
 import React from 'react'
 
 interface ChaosSyncOverlayProps {
-  isVisible: boolean
+  isSyncing: boolean
 }
 
-export function ChaosSyncOverlay({ isVisible }: ChaosSyncOverlayProps) {
-  if (!isVisible) return null
+export default function ChaosSyncOverlay({ isSyncing }: ChaosSyncOverlayProps) {
+  if (!isSyncing) return null
 
   return (
     <div 
       data-testid="chaos-sync-overlay"
-      className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-500"
+      className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm transition-all duration-500"
     >
       <div className="relative">
         {/* Animated neon ring */}
-        <div className="w-20 h-20 rounded-full border-2 border-neon-blue/20 animate-ping absolute inset-0" />
-        <div className="w-20 h-20 rounded-full border-2 border-t-neon-blue border-r-neon-pink/50 border-b-neon-purple/30 border-l-transparent animate-spin" />
+        <div className="w-24 h-24 rounded-full border-2 border-neon-cyan/20 animate-ping absolute inset-0" />
+        <div className="w-24 h-24 rounded-full border-4 border-t-neon-cyan border-r-neon-cyan/50 border-b-neon-cyan/20 border-l-transparent animate-spin shadow-[0_0_15px_rgba(0,255,255,0.5)]" />
         
-        {/* Central icon/text */}
+        {/* Central icon */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-2xl animate-pulse">⚡</span>
+          <span className="text-3xl text-neon-cyan animate-pulse drop-shadow-[0_0_8px_rgba(0,255,255,0.8)]">⚡</span>
         </div>
       </div>
       
-      <div className="mt-6 text-center space-y-1">
-        <h3 className="text-neon-blue font-black tracking-widest text-sm uppercase animate-pulse">
-          Chaos Syncing
+      <div className="mt-8 text-center space-y-2">
+        <h3 className="text-neon-cyan font-black tracking-widest text-lg uppercase animate-pulse drop-shadow-[0_0_10px_rgba(0,255,255,0.6)]">
+          Chaos Sync in progress
         </h3>
-        <p className="text-[10px] text-zinc-400 font-mono uppercase tracking-tighter">
-          Calibrating democratic frequencies...
+        <p className="text-sm text-zinc-400 font-mono uppercase tracking-widest">
+          Democracy is choosing the next track
         </p>
       </div>
       
       {/* Glitch bar at bottom */}
-      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-neon-blue via-neon-pink to-neon-purple opacity-50 animate-pulse" />
+      <div className="absolute bottom-0 left-0 w-full h-1 bg-neon-cyan shadow-[0_-2px_10px_rgba(0,255,255,0.5)] animate-pulse" />
     </div>
   )
 }

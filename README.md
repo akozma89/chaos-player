@@ -13,7 +13,8 @@ Democratic, gamified collaborative music player for social gatherings, remote te
 - **Leaderboard**: Real-time session rankings by tokens spent and votes cast
 - **YouTube Integration**: Access millions of songs instantly
 - **Crowd Pleaser**: Earn +3 tokens when your queued song gets 3+ net votes
-- **Spotify OAuth**: Connect Spotify account with PKCE flow for multi-source search
+- **Resilient Playlist Bootstrap (v2)**: Exponential backoff retries and track-guards prevent room startup failures.
+- **Chaos Sync UI**: Visual HUD overlay during track promotion and state synchronization.
 
 ## Tech Stack
 
@@ -92,7 +93,7 @@ npm test
 npm test:watch
 ```
 
-**Test Coverage (Cycle #22):** 245 tests across 33 suites — schema validation, room management, queue operations, Queue UI, YouTube search, YouTube player, auto-advance, YouTube error handling, queue integration, NowPlaying, leaderboard, moderation, Leaderboard UI, ModerationPanel UI, Dynamic Room Page, Winner Notifications, token earn, GDPR, Spotify OAuth/search, resilient playlist bootstrap (v2 with track guards and internal retries), Chaos Sync UI, public room discovery, and AutoplayGuard. RPC-backed voting (`cast_vote` RPC) and UI stability fixes.
+**Test Coverage (Cycle #23):** 247 tests across 35 suites — schema validation, room management, queue operations, Queue UI, YouTube search, YouTube player, auto-advance, YouTube error handling, queue integration, NowPlaying, leaderboard, moderation, Leaderboard UI, ModerationPanel UI, Dynamic Room Page, Winner Notifications, token earn, GDPR, Spotify OAuth/search, resilient playlist bootstrap (v2 with track guards and internal retries), Chaos Sync UI, public room discovery, and AutoplayGuard. RPC-backed voting (`cast_vote` RPC) and UI stability fixes.
 
 ### Building for Production
 

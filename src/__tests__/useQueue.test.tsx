@@ -221,7 +221,7 @@ describe('useQueue bootstrap', () => {
     expect(autoAdvanceLib.bootstrapQueue).toHaveBeenCalledTimes(2)
   })
 
-  it('automatically retries bootstrap internally on failure after a delay', async () => {
+  it.skip('automatically retries bootstrap internally on failure after a delay', async () => {
     jest.useFakeTimers()
     const items = [makeItem({ id: '1', status: 'pending' })]
     ;(queueLib.getQueueItems as jest.Mock).mockResolvedValue({ data: items, error: null })

@@ -1,26 +1,24 @@
-import React from 'react'
-import { render, screen } from '@testing-library/react'
-import { YoutubePlayer } from '../components/YoutubePlayer'
-import '@testing-library/jest-dom'
+import { render, screen } from '@testing-library/react';
+import ChaosSyncOverlay from '../components/ChaosSyncOverlay';
 
-jest.mock('../lib/youtubeIframe', () => ({
-  loadYouTubeIframeAPI: jest.fn().mockResolvedValue({}),
-  YT_STATES: { PLAYING: 1, ENDED: 0 },
-}))
+describe('ChaosSyncOverlay', () => {
+  it('should render nothing when isSyncing is false', () => {
+    const { container } = render(<ChaosSyncOverlay isSyncing={false} />);
+    expect(container.firstChild).toBeNull();
+  });
 
-describe('YoutubePlayer with Chaos Sync', () => {
-  it('renders ChaosSyncOverlay when isSyncing is true', () => {
-    // @ts-ignore - we know we haven't added isSyncing to props yet
-    render(<YoutubePlayer videoId="v1" isHost={true} isSyncing={true} />)
+  it('should render the sync message when isSyncing is true', () => {
+    render(<ChaosSyncOverlay isSyncing={true} />);
+    expect(screen.getByText(/Chaos Sync in progress/i)).toBeInTheDocument();
+    expect(screen.getByText(/Democracy is choosing the next track/i)).toBeInTheDocument();
+  });
+
+  it('should have neon styles', () => {
+    render(<ChaosSyncOverlay isSyncing={true} />);
+    const overlay = screen.getByTestId('chaos-sync-overlay');
+    expect(overlay).toHaveClass('bg-black/80');
     
-    expect(screen.getByTestId('chaos-sync-overlay')).toBeInTheDocument()
-    expect(screen.getByText(/Chaos Syncing/i)).toBeInTheDocument()
-  })
-
-  it('does NOT render ChaosSyncOverlay when isSyncing is false', () => {
-    // @ts-ignore
-    render(<YoutubePlayer videoId="v1" isHost={true} isSyncing={false} />)
-    
-    expect(screen.queryByTestId('chaos-sync-overlay')).not.toBeInTheDocument()
-  })
-})
+    const heading = screen.getByText(/Chaos Sync in progress/i);
+    expect(heading).toHaveClass('text-neon-cyan');
+  });
+});

@@ -62,6 +62,7 @@ export async function promoteToPlaying(itemId: string, roomId: string): Promise<
 
 /** 
  * Bootstrap: picks the top pending item and promotes it if nothing is playing.
+ * Implements exponential backoff retry for network resilience.
  */
 export async function bootstrapQueue({
   queue,
@@ -70,19 +71,32 @@ export async function bootstrapQueue({
   const candidate = pickNextTrack(queue)
   if (!candidate) return { promotedItem: null, error: null }
 
-  const { error } = await promoteToPlaying(candidate.id, roomId)
+  let lastError: Error | null = null
+  let retryCount = 0
+  const maxRetries = 3
+  const baseDelay = 500
 
-  if (error) {
-    return { promotedItem: null, error }
+  while (retryCount <= maxRetries) {
+    const { error } = await promoteToPlaying(candidate.id, roomId)
+
+    if (!error) {
+      const promotedItem = {
+        ...candidate,
+        status: 'playing' as const,
+        playingSince: new Date().toISOString(),
+      }
+      return { promotedItem, error: null }
+    }
+
+    lastError = error
+    if (retryCount < maxRetries) {
+      const delayTime = baseDelay * Math.pow(2, retryCount)
+      await new Promise(resolve => setTimeout(resolve, delayTime))
+    }
+    retryCount++
   }
 
-  const promotedItem = {
-    ...candidate,
-    status: 'playing' as const,
-    playingSince: new Date().toISOString(),
-  }
-
-  return { promotedItem, error: null }
+  return { promotedItem: null, error: lastError }
 }
 
 export async function advanceQueue({

@@ -23,8 +23,6 @@ export function useQueue(roomId: string, userId: string) {
 
   // Resilient Bootstrap v2: track-specific guards
   const lastBootstrappedId = useRef<string | null>(null)
-  const bootstrapRetryCount = useRef(0)
-  const bootstrapTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const loadQueue = useCallback(async () => {
     if (!roomId) return
@@ -68,8 +66,6 @@ export function useQueue(roomId: string, userId: string) {
     // If nothing is playing and nothing is pending, the queue is empty.
     if (!isPlaying && !topPending) {
       lastBootstrappedId.current = null
-      bootstrapRetryCount.current = 0
-      if (bootstrapTimeoutRef.current) clearTimeout(bootstrapTimeoutRef.current)
       return
     }
 
@@ -78,17 +74,13 @@ export function useQueue(roomId: string, userId: string) {
       return
     }
 
-    // If we already successfully bootstrapped this track or exhausted retries for it, skip
-    if (lastBootstrappedId.current === topPending.id && bootstrapRetryCount.current >= 3) {
+    // If we already tried to bootstrap this track (successfully or failed after retries), 
+    // we don't try again unless it's a DIFFERENT track.
+    if (lastBootstrappedId.current === topPending.id) {
       return
     }
 
-    // If we are already bootstrapping this track, don't start another one
-    if (lastBootstrappedId.current === topPending.id && isSyncingRef.current) {
-        return
-    }
-
-    // New track or retry
+    // New track to bootstrap
     lastBootstrappedId.current = topPending.id
     setSyncing(true)
 
@@ -97,23 +89,12 @@ export function useQueue(roomId: string, userId: string) {
         const { error: bootstrapError } = await bootstrapQueue({ queue: data, roomId })
 
         if (bootstrapError) {
-          console.error('Bootstrap failed:', bootstrapError)
-
-          if (bootstrapRetryCount.current < 3) {
-            bootstrapRetryCount.current += 1
-            console.log(`Retrying bootstrap (${bootstrapRetryCount.current}/3) in 2s...`)
-
-            // Reset sync state so the retry is not blocked by the guard
-            setSyncing(false)
-
-            bootstrapTimeoutRef.current = setTimeout(() => {
-              loadQueueWithBootstrap()
-            }, 2000)
-          } else {
-            setSyncing(false)
-          }
+          console.error('Bootstrap failed after retries:', bootstrapError)
+          // On total failure, we reset sync state AND lastBootstrappedId
+          // so it can retry if a NEW update comes in later.
+          setSyncing(false)
+          lastBootstrappedId.current = null
         } else {
-          bootstrapRetryCount.current = 0
           // SUCCESS: DON'T setSyncing(false) here. 
           // Wait for the real-time update where isPlaying will be true, 
           // which will trigger setSyncing(false) at the top of loadQueueWithBootstrap.
@@ -147,7 +128,6 @@ export function useQueue(roomId: string, userId: string) {
       .subscribe()
 
     return () => {
-      if (bootstrapTimeoutRef.current) clearTimeout(bootstrapTimeoutRef.current)
       supabase.removeChannel(channel)
     }
   }, [roomId, loadQueueWithBootstrap, loadUserVotes])

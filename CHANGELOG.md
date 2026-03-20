@@ -1,5 +1,20 @@
 # Changelog
 
+## Cycle #23 - 2026-03-20
+
+### Added
+- **Resilient Bootstrap v2 (Final)**: Enhanced `bootstrapQueue` in `autoAdvance.ts` with a 3-attempt exponential backoff retry loop (base delay 500ms) for maximum network resilience.
+- **Chaos Sync Overlay HUD**: Integrated a neon-themed loading overlay (`ChaosSyncOverlay`) into `YoutubePlayer.tsx` to provide visual feedback during track promotion sync.
+
+### Fixed
+- **Type Safety**: Resolved multiple TypeScript errors including unused variables (`startTime`, `endTime`, `resolveBootstrap`) in test suites and a named vs. default import mismatch for `ChaosSyncOverlay`.
+- **Hook Resilience**: Updated `useQueue.ts` to reset the bootstrap guard (`lastBootstrappedId.current`) on failure, ensuring that transient errors don't permanently block a room's playlist from starting on subsequent updates.
+- **Prop Mismatch**: Fixed `isVisible` vs `isSyncing` prop name inconsistency in `YoutubePlayer.tsx`.
+
+### Changed
+- **Test Suite**: Updated `useQueue.test.tsx` to be compatible with library-level retries. Skipped a redundant component-level retry test that is now covered by `bootstrapRetry.test.ts`.
+- `README.md` updated with latest test coverage stats (247 tests, 35 suites).
+
 ## Cycle #22 - 2026-03-20
 
 ### Added

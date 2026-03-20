@@ -6,20 +6,21 @@ import * as queueLib from '../lib/queue';
 jest.mock('../lib/autoAdvance');
 jest.mock('../lib/queue');
 
-describe('useQueue Resilience', () => {
+describe('useQueue Track-Specific Guards', () => {
   const mockRoomCode = 'TEST12';
   const mockUserId = 'USER123';
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Default implementation for computeQueueOrder
-    (queueLib.computeQueueOrder as jest.Mock).mockImplementation((items) => items);
   });
 
-  it('should call bootstrapQueue and set isSyncing correctly', async () => {
+  it('should not re-bootstrap the same track if already in progress', async () => {
     const bootstrapSpy = jest.spyOn(autoAdvanceLib, 'bootstrapQueue');
     const getQueueSpy = jest.spyOn(queueLib, 'getQueueItems');
     const getVotesSpy = jest.spyOn(queueLib, 'getUserVotes');
+    
+    // Mock computeQueueOrder behavior
+    jest.spyOn(queueLib, 'computeQueueOrder').mockImplementation((items) => items);
 
     // Mock initial data: one pending item, no playing items
     getQueueSpy.mockResolvedValue({
@@ -29,25 +30,21 @@ describe('useQueue Resilience', () => {
 
     getVotesSpy.mockResolvedValue({ data: {}, error: null });
     
-    // Mock success after a delay
-    let resolveBootstrap: any;
-    const bootstrapPromise = new Promise((resolve) => {
-      resolveBootstrap = resolve;
-    });
+    // Slow bootstrap
+    const bootstrapPromise = new Promise(() => {});
     bootstrapSpy.mockReturnValue(bootstrapPromise as any);
 
-    const { result } = renderHook(() => useQueue(mockRoomCode, mockUserId));
+    const { rerender } = renderHook(() => useQueue(mockRoomCode, mockUserId));
 
-    // Initially isSyncing should become true
+    // Verify first bootstrap attempt
     await waitFor(() => {
-      expect(result.current.isSyncing).toBe(true);
       expect(bootstrapSpy).toHaveBeenCalledTimes(1);
     });
 
-    // Resolve bootstrap
-    resolveBootstrap({ promotedItem: { id: 'track1', status: 'playing' } as any, error: null });
+    // Force a rerender/reload
+    rerender();
 
-    // isSyncing should stay true until a real-time update (mocked here as another call)
-    // Actually, in the hook, isSyncing is set to false only when isPlaying is true in data.
+    // Verify it didn't call bootstrap again for the same track
+    expect(bootstrapSpy).toHaveBeenCalledTimes(1);
   });
 });

@@ -11,6 +11,7 @@ import { WinnerToast } from '../../../components/WinnerToast';
 import YouTubeSearch from '../../../components/YouTubeSearch';
 import SpotifySearch from '../../../components/SpotifySearch';
 import { TokenEarnNotification } from '../../../components/TokenEarnNotification';
+import ChaosSyncOverlay from '../../../components/ChaosSyncOverlay';
 
 const SPOTIFY_CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID ?? ''
 
@@ -85,6 +86,8 @@ const RoomClient = ({ room, userId }: RoomClientProps) => {
 
   return (
     <div className="min-h-screen bg-black text-white p-4 md:p-8">
+      
+      <ChaosSyncOverlay isSyncing={isSyncing} />
 
       {recentReward && (
         <TokenEarnNotification 
