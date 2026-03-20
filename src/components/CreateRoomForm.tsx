@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { createRoom } from '../lib/rooms'
-import { signInAnonymously } from '../lib/auth'
+import { signInAnonymously, claimAnonymousUsername } from '../lib/auth'
 import { useStoredUsername } from '../hooks/useStoredUsername'
+import { useUsernameCheck } from '../hooks/useUsernameCheck'
 
 interface Props {
   onRoomCreated: (roomCode: string, roomName: string) => void
@@ -12,6 +13,7 @@ interface Props {
 export function CreateRoomForm({ onRoomCreated }: Props) {
   const [roomName, setRoomName] = useState('')
   const [username, setUsername] = useStoredUsername()
+  const { isAvailable, isChecking } = useUsernameCheck(username)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -25,6 +27,13 @@ export function CreateRoomForm({ onRoomCreated }: Props) {
     const { user, error: authError } = await signInAnonymously()
     if (authError || !user) {
       setError('Failed to authenticate. Please try again.')
+      setLoading(false)
+      return
+    }
+
+    const { success, error: claimError } = await claimAnonymousUsername(username.trim())
+    if (!success) {
+      setError(claimError?.message ?? 'Username is already taken.')
       setLoading(false)
       return
     }
@@ -61,16 +70,23 @@ export function CreateRoomForm({ onRoomCreated }: Props) {
         <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1">
           Your Name
         </label>
-        <input
-          id="username"
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="DJ Chaos"
-          maxLength={30}
-          required
-          className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-neon-pink"
-        />
+        <div className="relative">
+          <input
+            id="username"
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="DJ Chaos"
+            maxLength={30}
+            required
+            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-neon-pink"
+          />
+          {username.trim() && (
+            <div className={`absolute right-3 top-2.5 text-sm ${isChecking ? 'text-gray-400' : isAvailable === false ? 'text-red-400' : isAvailable === true ? 'text-green-400' : ''}`}>
+              {isChecking ? 'Checking...' : isAvailable === false ? 'Taken?' : isAvailable === true ? 'Available' : ''}
+            </div>
+          )}
+        </div>
       </div>
 
       {error && <p className="text-red-400 text-sm">{error}</p>}

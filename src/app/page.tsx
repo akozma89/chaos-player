@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { CreateRoomForm } from '../components/CreateRoomForm'
 import { JoinRoomForm } from '../components/JoinRoomForm'
 
@@ -60,7 +61,7 @@ export default function Home() {
         <p className="text-xl text-gray-400 mb-10">
           Democratic Music Player for Social Gatherings
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
           <button
             onClick={() => setView('create')}
             className="px-8 py-3 bg-neon-pink text-black font-bold rounded-lg hover:bg-neon-cyan transition-colors"
@@ -73,6 +74,12 @@ export default function Home() {
           >
             Join Room
           </button>
+        </div>
+        <div className="text-gray-400 text-sm">
+          Want to reserve your name?{' '}
+          <Link href="/login" className="text-neon-cyan hover:underline">
+            Login or Register
+          </Link>
         </div>
       </div>
     </main>
