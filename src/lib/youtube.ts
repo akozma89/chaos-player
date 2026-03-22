@@ -42,7 +42,7 @@ export async function searchYouTubeWithErrors(query: string): Promise<YouTubeSea
 
   const searchUrl =
     `https://youtube.googleapis.com/youtube/v3/search` +
-    `?part=snippet&type=video&maxResults=10&q=${encodedQuery}&key=${apiKey}`
+    `?part=snippet&type=video&maxResults=12&q=${encodedQuery}&key=${apiKey}`
 
   try {
     const searchRes = await fetch(searchUrl)
@@ -102,7 +102,7 @@ export async function searchYouTube(query: string): Promise<YouTubeSearchResult[
 
   const searchUrl =
     `https://youtube.googleapis.com/youtube/v3/search` +
-    `?part=snippet&type=video&maxResults=10&q=${encodedQuery}&key=${apiKey}`
+    `?part=snippet&type=video&maxResults=12&q=${encodedQuery}&key=${apiKey}`
 
   try {
     const searchRes = await fetch(searchUrl)

@@ -9,11 +9,10 @@ import { Queue } from '../../../components/Queue';
 import Leaderboard from '../../../components/Leaderboard';
 import { UnifiedPlayer } from '../../../components/UnifiedPlayer';
 import { WinnerToast } from '../../../components/WinnerToast';
-import YouTubeSearch from '../../../components/YouTubeSearch';
-import SpotifySearch from '../../../components/SpotifySearch';
 import { TokenEarnNotification } from '../../../components/TokenEarnNotification';
 import ChaosSyncOverlay from '../../../components/ChaosSyncOverlay';
 import { TrackAddedToast } from '../../../components/TrackAddedToast';
+import { SearchModal } from '../../../components/SearchModal';
 
 const SPOTIFY_CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID ?? ''
 
@@ -27,10 +26,10 @@ interface RoomClientProps {
 
 const RoomClient = ({ room: initialRoom, userId }: RoomClientProps) => {
   const router = useRouter();
-  const [activeSource, setActiveSource] = useState<'youtube' | 'spotify'>(initialRoom.allowedResources === 'spotify' ? 'spotify' : 'youtube');
   const lastTrackIdRef = useRef<string | null>(null);
   const [showWinnerToast, setShowWinnerToast] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   const [readdingIds, setReaddingIds] = useState<Set<string>>(new Set());
   type ActiveToast = { id: string, trackId: string };
@@ -190,7 +189,7 @@ const RoomClient = ({ room: initialRoom, userId }: RoomClientProps) => {
         />
       )}
       
-      <div className="fixed top-28 right-8 z-[60] flex flex-col gap-3 pointer-events-none">
+      <div className="fixed top-4 left-4 right-4 sm:top-28 sm:left-auto sm:right-8 sm:w-80 z-[60] flex flex-col gap-3 pointer-events-none">
         {activeToasts.map(toast => {
           const addedTrack = items.find((i) => i.id === toast.trackId);
           if (!addedTrack) return null;
@@ -208,50 +207,67 @@ const RoomClient = ({ room: initialRoom, userId }: RoomClientProps) => {
       </div>
 
       <div className="max-w-7xl mx-auto space-y-8">
-        <header className="flex justify-between items-center group">
-          <div className="flex items-center gap-6">
-            <button 
+        <header className="flex justify-between items-start sm:items-center gap-3 sm:gap-6 group">
+          <div className="flex items-center gap-2 sm:gap-6 min-w-0 flex-1">
+            <button
               onClick={() => router.push('/')}
-              className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-zinc-500 hover:text-white hover:bg-white/10 transition-all active:scale-95"
+              className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-zinc-500 hover:text-white hover:bg-white/10 transition-all active:scale-95 flex-shrink-0"
               title="Back to Lobby"
             >
               ←
             </button>
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-black text-white tracking-tighter uppercase">
-                  {room.name}
-                </h1>
-                <span className="px-2 py-0.5 rounded bg-neon-pink/10 border border-neon-pink/20 text-[10px] font-bold text-neon-pink uppercase tracking-widest">
+            <div className="space-y-1 min-w-0">
+              {/* Room name - visible on all sizes */}
+              <h1 className="text-base sm:text-2xl font-black text-white tracking-tighter uppercase truncate">
+                {room.name}
+              </h1>
+              {/* Code + Visibility - same row on all sizes */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2 py-0.5 rounded text-[8px] sm:text-[10px] font-bold text-neon-pink bg-neon-pink/10 border border-neon-pink/20 uppercase tracking-widest flex-shrink-0">
                   {initialRoom.code}
                 </span>
+                <span className="text-[8px] sm:text-[10px] font-bold text-zinc-400 bg-zinc-800/50 px-2 py-0.5 rounded-full uppercase tracking-widest flex-shrink-0">
+                  {room.isPublic ? 'Public' : 'Private'}
+                </span>
               </div>
-              <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-[0.2em]">
-                {room.isPublic ? 'Public Session' : 'Private Session'}
-              </p>
             </div>
           </div>
 
-          <button
-            onClick={handleCopyLink}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all active:scale-95 ${
-              isCopying 
-                ? 'bg-neon-green/20 border-neon-green text-neon-green' 
-                : 'bg-white/5 border-white/10 text-zinc-400 hover:text-white hover:bg-white/10'
-            }`}
-          >
-            <span className="text-xs font-bold uppercase tracking-widest">
-              {isCopying ? 'Copied!' : 'Copy Invite'}
-            </span>
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => setIsSearchModalOpen(true)}
+              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-full border transition-all active:scale-95 flex-shrink-0 bg-white/5 border-white/10 text-zinc-400 hover:text-white hover:bg-white/10`}
+              title="Search and add tracks"
+            >
+              <span className="hidden sm:inline text-xs font-bold uppercase tracking-widest whitespace-nowrap">
+                + Search
+              </span>
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+            <button
+              onClick={handleCopyLink}
+              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-full border transition-all active:scale-95 flex-shrink-0 ${
+                isCopying
+                  ? 'bg-neon-green/20 border-neon-green text-neon-green'
+                  : 'bg-white/5 border-white/10 text-zinc-400 hover:text-white hover:bg-white/10'
+              }`}
+              title={isCopying ? 'Copied!' : 'Copy Invite'}
+            >
+              <span className="hidden sm:inline text-xs font-bold uppercase tracking-widest whitespace-nowrap">
+                {isCopying ? 'Copied!' : 'Copy Invite'}
+              </span>
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+              </svg>
+            </button>
+          </div>
         </header>
 
         <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Player – first on all screen sizes */}
-          <div className="lg:col-span-2 order-1 lg:order-none">
+          {/* Player – first on all screen sizes; sticky on mobile so it stays visible while scrolling */}
+          <div className="lg:col-span-2 z-[100] order-1 lg:order-none sticky top-2 self-start lg:static lg:z-auto">
             <UnifiedPlayer
               currentTrack={playing}
               queue={items}
@@ -266,53 +282,24 @@ const RoomClient = ({ room: initialRoom, userId }: RoomClientProps) => {
             />
           </div>
 
-          {/* Right Column: Add Track, Up Next, Contributors
+          {/* Right Column: Up Next, Contributors
               On mobile: order-2 so it follows the player directly.
               On desktop: natural grid flow places it in the third column. */}
           <div className="space-y-8 order-2 lg:order-none lg:row-span-2">
-            <section className="relative z-10 bg-zinc-900/50 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
-              <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
-                <span className="w-1.5 h-5 bg-neon-blue rounded-full block" />
-                ADD TRACK
-              </h2>
-              {/* Source toggle */}
-              {room.allowedResources === 'both' && (
-                <div className="flex gap-1 mb-4 p-1 bg-black/30 rounded-lg">
-                  <button
-                    onClick={() => setActiveSource('youtube')}
-                    className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition ${
-                      activeSource === 'youtube'
-                        ? 'bg-neon-blue/20 text-neon-blue border border-neon-blue/30'
-                        : 'text-zinc-500 hover:text-zinc-300'
-                    }`}
-                  >
-                    YouTube
-                  </button>
-                  <button
-                    onClick={() => setActiveSource('spotify')}
-                    className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition ${
-                      activeSource === 'spotify'
-                        ? 'bg-neon-green/20 text-neon-green border border-neon-green/30'
-                        : 'text-zinc-500 hover:text-zinc-300'
-                    }`}
-                  >
-                    Spotify
-                  </button>
-                </div>
-              )}
-              {room.allowedResources !== 'spotify' && activeSource === 'youtube' && (
-                <YouTubeSearch roomId={room.id} userId={userId} username={session?.username} />
-              )}
-              {room.allowedResources !== 'youtube' && activeSource === 'spotify' && (
-                <SpotifySearch roomId={room.id} userId={userId} clientId={SPOTIFY_CLIENT_ID} username={session?.username} />
-              )}
-            </section>
-
             <section className="bg-zinc-900/50 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <span className="w-1.5 h-5 bg-neon-green rounded-full block" />
-                UP NEXT
-              </h2>
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <span className="w-1.5 h-5 bg-neon-green rounded-full block" />
+                  UP NEXT
+                </h2>
+                <button
+                  onClick={() => setIsSearchModalOpen(true)}
+                  className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest bg-neon-green/10 hover:bg-neon-green/20 text-neon-green border border-neon-green/30 rounded-full transition-colors"
+                  title="Add track"
+                >
+                  + Add
+                </button>
+              </div>
               <Queue items={pending} userVotes={userVotes} loading={loading} error={error} vote={vote} />
             </section>
 
@@ -325,7 +312,7 @@ const RoomClient = ({ room: initialRoom, userId }: RoomClientProps) => {
             </section>
           </div>
 
-          {/* History – on mobile this appears after Add Track + Up Next (order-3).
+          {/* History – on mobile this appears after Up Next (order-3).
               On desktop it sits below the player in column 1-2. */}
           {completed.length > 0 && (
             <section className="lg:col-span-2 order-3 lg:order-none bg-zinc-900/50 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
@@ -403,6 +390,25 @@ const RoomClient = ({ room: initialRoom, userId }: RoomClientProps) => {
           )}
         </main>
       </div>
+
+      {/* Mobile Floating Action Button */}
+      <button
+        onClick={() => setIsSearchModalOpen(true)}
+        className="lg:hidden fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-neon-green text-black shadow-lg hover:shadow-xl hover:scale-110 transition-all active:scale-95 flex items-center justify-center font-bold text-2xl"
+        title="Add track"
+      >
+        +
+      </button>
+
+      <SearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        roomId={room.id}
+        userId={userId}
+        username={session?.username}
+        clientId={SPOTIFY_CLIENT_ID}
+        allowedResources={room.allowedResources}
+      />
     </div>
   );
 };

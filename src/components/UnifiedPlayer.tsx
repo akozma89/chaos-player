@@ -184,7 +184,7 @@ export function UnifiedPlayer({
 
   if (!currentTrack) {
     return (
-      <div className="flex items-center justify-center h-64 bg-zinc-900/20 rounded-3xl border border-white/5 text-zinc-500 font-mono text-sm tracking-widest uppercase animate-pulse">
+      <div className="flex items-center z-[100] p-6 justify-center h-64 bg-zinc-900 rounded-3xl border border-white/5 text-zinc-500 font-mono text-sm tracking-widest uppercase animate-pulse">
         Waiting for democracy to pick a track...
       </div>
     )
@@ -237,10 +237,12 @@ export function UnifiedPlayer({
       )}
 
       {/* Main Player UI */}
-      <div className="flex flex-col md:flex-row md:items-center gap-6 z-10">
+      <div className="flex flex-col gap-4 z-10">
+        {/* Top row: Artwork + Track Info */}
+        <div className="flex items-center gap-4">
         {/* Artwork Placeholder / Source Icon */}
         <div className="relative flex-shrink-0 group/artwork">
-          <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl bg-gradient-to-br from-zinc-800 to-black border border-white/10 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-500 overflow-hidden relative">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-2xl bg-gradient-to-br from-zinc-800 to-black border border-white/10 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-500 overflow-hidden relative">
              {currentTrack.thumbnailUrl ? (
                 <Image
                   src={currentTrack.thumbnailUrl}
@@ -284,10 +286,10 @@ export function UnifiedPlayer({
 
         {/* Track Info */}
         <div className="flex-1 min-w-0 space-y-1">
-          <h2 className="text-2xl md:text-3xl font-black text-white truncate tracking-tight group-hover:text-neon-cyan transition-colors duration-500" title={currentTrack.title}>
+          <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-white truncate tracking-tight group-hover:text-neon-cyan transition-colors duration-500" title={currentTrack.title}>
             {currentTrack.title}
           </h2>
-          <p className="text-zinc-400 font-medium text-lg truncate" title={currentTrack.artist}>
+          <p className="text-zinc-400 font-medium text-sm sm:text-lg truncate" title={currentTrack.artist}>
             {currentTrack.artist}
           </p>
           <div className="flex items-center gap-3 mt-2">
@@ -299,9 +301,10 @@ export function UnifiedPlayer({
             </div>
           </div>
         </div>
+        </div>{/* end top row */}
 
-        {/* Controls */}
-        <div className="flex items-center gap-4">
+        {/* Controls Row */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {/* Volume Control */}
           <div className="flex items-center gap-2">
             <button
@@ -332,7 +335,7 @@ export function UnifiedPlayer({
               value={volume}
               onChange={(e) => applyVolume(Number(e.target.value))}
               data-testid="volume-slider"
-              className="w-20 accent-neon-cyan cursor-pointer"
+              className="w-16 sm:w-24 accent-neon-cyan cursor-pointer"
               aria-label="Volume"
             />
           </div>

@@ -16,17 +16,17 @@ export function TrackAddedToast({ track, userVote, onVote, onDismiss }: TrackAdd
     <div
       role="alert"
       data-testid="track-added-toast"
-      className="flex items-center gap-4 px-6 py-4 rounded-xl border border-neon-blue/50 bg-black/90 shadow-[0_0_20px_rgba(0,195,255,0.3)] animate-bounce-in backdrop-blur-md"
+      className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-neon-blue/50 bg-black/90 shadow-[0_0_20px_rgba(0,195,255,0.3)] animate-bounce-in backdrop-blur-md w-full"
     >
-      <div className="flex flex-col flex-1 mr-2">
-        <span className="text-neon-blue font-black text-[10px] uppercase tracking-[0.2em] mb-1">Track Added:</span>
-        <span className="text-white font-bold text-lg leading-tight truncate max-w-[200px] sm:max-w-xs">{track.title}</span>
-        <span className="text-zinc-400 text-xs mt-1 font-medium truncate max-w-[200px] sm:max-w-xs">
+      <div className="flex flex-col flex-1 min-w-0">
+        <span className="text-neon-blue font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] mb-1">Track Added:</span>
+        <span className="text-white font-bold text-xs sm:text-lg leading-tight truncate">{track.title}</span>
+        <span className="text-zinc-400 text-[10px] sm:text-xs mt-0.5 font-medium truncate">
           Added by <span className="text-neon-pink">{track.addedByName || 'Chaos'}</span>
         </span>
       </div>
 
-      <div className="flex items-center gap-2 border-l border-white/10 pl-4 border-r pr-4">
+      <div className="flex items-center gap-1 sm:gap-2 border-l border-white/10 pl-2 sm:pl-4 border-r pr-2 sm:pr-4 shrink-0">
         <VoteButton
           type="upvote"
           count={track.upvotes}
@@ -43,7 +43,7 @@ export function TrackAddedToast({ track, userVote, onVote, onDismiss }: TrackAdd
 
       <button
         onClick={onDismiss}
-        className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-zinc-500 hover:text-white transition-colors border border-white/10 shrink-0"
+        className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-white/5 text-zinc-500 hover:text-white transition-colors border border-white/10 shrink-0 text-xs sm:text-base"
         aria-label="Dismiss"
       >
         ✕
