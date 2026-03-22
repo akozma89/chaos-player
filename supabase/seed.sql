@@ -37,7 +37,7 @@ INSERT INTO auth.users (
   'authenticated',
   'authenticated',
   'chaosadmin@chaos-player.local',
-  crypt('789741', gen_salt('bf')),
+  '$2a$10$8HayBTKrfSupKOV9v8l3zeeBGhYb92IJwB9p8znhz71dWOAY7x7Qi',
   NOW(),
   '{"provider":"email","providers":["email"]}',
   '{"username":"ChaosAdmin"}',
@@ -47,7 +47,7 @@ INSERT INTO auth.users (
   FALSE
 )
 ON CONFLICT (id) DO UPDATE SET
-  encrypted_password         = crypt('789741', gen_salt('bf')),
+  encrypted_password         = '$2a$10$8HayBTKrfSupKOV9v8l3zeeBGhYb92IJwB9p8znhz71dWOAY7x7Qi',
   email_confirmed_at         = COALESCE(auth.users.email_confirmed_at, NOW()),
   email_change               = '',
   email_change_token_new     = '',
