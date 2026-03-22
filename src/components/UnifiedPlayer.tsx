@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import Image from 'next/image'
 import { YoutubePlayer } from './YoutubePlayer'
 import { SpotifyPlayer } from './SpotifyPlayer'
-import { advanceQueue, pickNextTrack } from '../lib/autoAdvance'
+import { advanceQueue, skipQueue, pickNextTrack } from '../lib/autoAdvance'
 import { toggleRoomPause } from '../lib/queue'
 import type { QueueItem, Room } from '../types'
 
@@ -15,6 +15,9 @@ interface UnifiedPlayerProps {
   isHost: boolean
   userId: string
   isSyncing?: boolean
+  skipVotes?: string[]
+  activeSessionCount?: number
+  onVoteSkip?: (queueItemId: string) => void
   onTrackChange?: (next: QueueItem | null) => void
   onTokenSkip?: () => void
 }
@@ -24,8 +27,11 @@ export function UnifiedPlayer({
   queue,
   room,
   isHost,
-  userId: _userId,
+  userId,
   isSyncing = false,
+  skipVotes = [],
+  activeSessionCount = 1,
+  onVoteSkip,
   onTrackChange,
   onTokenSkip,
 }: UnifiedPlayerProps) {
@@ -145,6 +151,21 @@ export function UnifiedPlayer({
     onTrackChange?.(nextItem)
   }, [currentTrack, queue, onTrackChange])
 
+  const trySkip = useCallback(async () => {
+    if (!currentTrack) return
+    const { nextItem, error } = await skipQueue({
+      currentItemId: currentTrack.id,
+      queue,
+      roomId: currentTrack.roomId,
+    })
+    if (error) {
+      setAdvanceError(error.message)
+      return
+    }
+    setAdvanceError(null)
+    onTrackChange?.(nextItem)
+  }, [currentTrack, queue, onTrackChange])
+
   const handleTogglePause = async () => {
     if (!room) return
     const { error } = await toggleRoomPause(room.id, !isPaused)
@@ -156,6 +177,10 @@ export function UnifiedPlayer({
   const nextWinner = useMemo(() => pickNextTrack(queue), [queue])
   const remainingTime = currentTrack ? currentTrack.duration - elapsed : 0
   const showCountdown = remainingTime > 0 && remainingTime <= 10 && nextWinner && !isPaused
+
+  const hasVotedSkip = currentTrack ? skipVotes.includes(userId) : false
+  const skipVotesNeeded = Math.min(room?.skipVoteCount || 2, activeSessionCount || 1)
+  const currentSkipVotes = skipVotes.length
 
   if (!currentTrack) {
     return (
@@ -345,9 +370,10 @@ export function UnifiedPlayer({
             </button>
           )}
 
+          {/* Host Force Skip / Guest Token Skip */}
           {(isHost || onTokenSkip) && (
             <button
-              onClick={isHost ? tryAdvance : onTokenSkip}
+              onClick={isHost ? trySkip : onTokenSkip}
               className={`group/skip relative p-3 rounded-full border border-white/10 bg-white/5 hover:bg-neon-pink/10 hover:border-neon-pink/30 transition-all ${
                 !isHost && 'hover:shadow-[0_0_20px_rgba(255,16,240,0.2)]'
               }`}
@@ -356,10 +382,24 @@ export function UnifiedPlayer({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
               </svg>
               {!isHost && (
-                <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-neon-pink text-[10px] font-black rounded opacity-0 group-hover/skip:opacity-100 transition-opacity">
-                  SKIP 5🪙
+                <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-neon-pink text-[10px] font-black rounded opacity-0 group-hover/skip:opacity-100 transition-opacity whitespace-nowrap">
+                  FORCE 5🪙
                 </span>
               )}
+            </button>
+          )}
+
+          {/* Guest Vote Skip */}
+          {!isHost && onVoteSkip && (
+            <button
+              onClick={() => onVoteSkip(currentTrack.id)}
+              className={`relative px-4 py-2 rounded-full border text-sm font-bold transition-all ${
+                hasVotedSkip 
+                  ? 'bg-neon-pink text-black border-neon-pink shadow-[0_0_15px_rgba(255,16,240,0.4)]' 
+                  : 'bg-white/5 border-white/10 text-zinc-400 hover:text-white hover:border-white/20 hover:bg-white/10'
+              }`}
+            >
+              SKIP ({currentSkipVotes}/{skipVotesNeeded})
             </button>
           )}
         </div>

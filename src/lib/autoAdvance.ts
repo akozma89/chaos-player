@@ -99,6 +99,24 @@ export async function bootstrapQueue({
   return { promotedItem: null, error: lastError }
 }
 
+export async function skipQueue({
+  currentItemId,
+  queue,
+  roomId,
+}: AdvanceQueueParams): Promise<AdvanceQueueResult> {
+  const { error } = await supabase.rpc('skip_queue', {
+    p_current_item_id: currentItemId,
+    p_room_id: roomId,
+  })
+
+  if (error) {
+    return { nextItem: null, error: new Error(error.message) }
+  }
+
+  const nextItem = pickNextTrack(queue)
+  return { nextItem, error: null }
+}
+
 export async function advanceQueue({
   currentItemId,
   queue,

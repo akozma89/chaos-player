@@ -19,6 +19,8 @@ export function CreateRoomForm({ onRoomCreated }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [isPublic, setIsPublic] = useState(true)
   const [password, setPassword] = useState('')
+  const [skipVoteCount, setSkipVoteCount] = useState(2)
+  const [allowedResources, setAllowedResources] = useState<'both' | 'youtube' | 'spotify'>('both')
 
   // If user is anonymous, they can't create private rooms
   useEffect(() => {
@@ -61,6 +63,8 @@ export function CreateRoomForm({ onRoomCreated }: Props) {
       username: username.trim(),
       isPublic,
       password: !isPublic ? password.trim() : undefined,
+      skipVoteCount,
+      allowedResources,
     })
     
     if (roomError || !data) {
@@ -192,6 +196,57 @@ export function CreateRoomForm({ onRoomCreated }: Props) {
       )}
 
       {error && <p className="text-red-400 text-sm">{error}</p>}
+
+      {/* Search Resources */}
+      <div>
+        <p className="block text-sm font-medium text-gray-300 mb-2">Allowed Tracks</p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setAllowedResources('both')}
+            className={`flex-1 px-2 py-2 rounded-lg border text-sm font-semibold transition-colors ${
+              allowedResources === 'both' ? 'bg-neon-cyan text-black border-neon-cyan' : 'bg-gray-800 text-gray-300 border-gray-700 hover:border-neon-cyan'
+            }`}
+          >
+            Both
+          </button>
+          <button
+            type="button"
+            onClick={() => setAllowedResources('youtube')}
+            className={`flex-1 px-2 py-2 rounded-lg border text-sm font-semibold transition-colors ${
+              allowedResources === 'youtube' ? 'bg-neon-cyan text-black border-neon-cyan' : 'bg-gray-800 text-gray-300 border-gray-700 hover:border-neon-cyan'
+            }`}
+          >
+            YouTube
+          </button>
+          <button
+            type="button"
+            onClick={() => setAllowedResources('spotify')}
+            className={`flex-1 px-2 py-2 rounded-lg border text-sm font-semibold transition-colors ${
+              allowedResources === 'spotify' ? 'bg-neon-cyan text-black border-neon-cyan' : 'bg-gray-800 text-gray-300 border-gray-700 hover:border-neon-cyan'
+            }`}
+          >
+            Spotify
+          </button>
+        </div>
+      </div>
+
+      {/* Skip Vote Count */}
+      <div>
+        <label htmlFor="skipVoteCount" className="block text-sm font-medium text-gray-300 mb-1">
+          Skip Vote Threshold
+        </label>
+        <input
+          id="skipVoteCount"
+          type="number"
+          min="1"
+          max="1000"
+          value={skipVoteCount}
+          onChange={(e) => setSkipVoteCount(Math.max(1, Number(e.target.value)))}
+          className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-neon-pink"
+        />
+        <p className="text-xs text-gray-500 mt-1">Number of votes needed to skip a track.</p>
+      </div>
 
       <button
         type="submit"

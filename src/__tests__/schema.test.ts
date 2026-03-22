@@ -22,6 +22,8 @@ describe('Supabase Schema Validation', () => {
         isPaused: false,
         pausedAt: null,
         code: '123456',
+        skipVoteCount: 2,
+        allowedResources: 'both',
       }
       expect(validateRoom(room)).toBe(true)
     })
@@ -42,6 +44,8 @@ describe('Supabase Schema Validation', () => {
         isPaused: false,
         pausedAt: null,
         code: '123456',
+        skipVoteCount: 2,
+        allowedResources: 'both',
       } as unknown as Room
       expect(validateRoom(room)).toBe(false)
     })

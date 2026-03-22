@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueue } from '../../../hooks/useQueue';
-import { addToQueue } from '../../../lib/queue';
+import { addToQueue, toggleSkipVote } from '../../../lib/queue';
 import { getRoomPassword } from '../../../lib/rooms';
 import { Queue } from '../../../components/Queue';
 import Leaderboard from '../../../components/Leaderboard';
@@ -26,7 +26,7 @@ interface RoomClientProps {
 
 const RoomClient = ({ room: initialRoom, userId }: RoomClientProps) => {
   const router = useRouter();
-  const [activeSource, setActiveSource] = useState<'youtube' | 'spotify'>('youtube');
+  const [activeSource, setActiveSource] = useState<'youtube' | 'spotify'>(initialRoom.allowedResources === 'spotify' ? 'spotify' : 'youtube');
   const lastTrackIdRef = useRef<string | null>(null);
   const [showWinnerToast, setShowWinnerToast] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
@@ -48,7 +48,9 @@ const RoomClient = ({ room: initialRoom, userId }: RoomClientProps) => {
     session, 
     room: liveRoom, 
     recentReward, 
-    isSyncing, 
+    isSyncing,
+    skipVotes,
+    activeSessionCount,
     refresh 
   } = useQueue(initialRoom.id, userId);
 
@@ -165,7 +167,7 @@ const RoomClient = ({ room: initialRoom, userId }: RoomClientProps) => {
   }
 
   const completed = items
-    .filter(i => i.status === 'completed')
+    .filter(i => i.status === 'completed' || i.status === 'skipped')
     .sort((a, b) => new Date(b.playingSince ?? b.addedAt).getTime() - new Date(a.playingSince ?? a.addedAt).getTime());
 
   return (
@@ -256,6 +258,9 @@ const RoomClient = ({ room: initialRoom, userId }: RoomClientProps) => {
               isHost={isHost}
               userId={userId}
               isSyncing={isSyncing}
+              skipVotes={skipVotes}
+              activeSessionCount={activeSessionCount}
+              onVoteSkip={(trackId) => toggleSkipVote(trackId, userId, room.id)}
               onTrackChange={() => refresh()}
             />
           </div>
@@ -270,31 +275,34 @@ const RoomClient = ({ room: initialRoom, userId }: RoomClientProps) => {
                 ADD TRACK
               </h2>
               {/* Source toggle */}
-              <div className="flex gap-1 mb-4 p-1 bg-black/30 rounded-lg">
-                <button
-                  onClick={() => setActiveSource('youtube')}
-                  className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition ${
-                    activeSource === 'youtube'
-                      ? 'bg-neon-blue/20 text-neon-blue border border-neon-blue/30'
-                      : 'text-zinc-500 hover:text-zinc-300'
-                  }`}
-                >
-                  YouTube
-                </button>
-                <button
-                  onClick={() => setActiveSource('spotify')}
-                  className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition ${
-                    activeSource === 'spotify'
-                      ? 'bg-neon-green/20 text-neon-green border border-neon-green/30'
-                      : 'text-zinc-500 hover:text-zinc-300'
-                  }`}
-                >
-                  Spotify
-                </button>
-              </div>
-              {activeSource === 'youtube' ? (
+              {room.allowedResources === 'both' && (
+                <div className="flex gap-1 mb-4 p-1 bg-black/30 rounded-lg">
+                  <button
+                    onClick={() => setActiveSource('youtube')}
+                    className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition ${
+                      activeSource === 'youtube'
+                        ? 'bg-neon-blue/20 text-neon-blue border border-neon-blue/30'
+                        : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    YouTube
+                  </button>
+                  <button
+                    onClick={() => setActiveSource('spotify')}
+                    className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition ${
+                      activeSource === 'spotify'
+                        ? 'bg-neon-green/20 text-neon-green border border-neon-green/30'
+                        : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    Spotify
+                  </button>
+                </div>
+              )}
+              {room.allowedResources !== 'spotify' && activeSource === 'youtube' && (
                 <YouTubeSearch roomId={room.id} userId={userId} username={session?.username} />
-              ) : (
+              )}
+              {room.allowedResources !== 'youtube' && activeSource === 'spotify' && (
                 <SpotifySearch roomId={room.id} userId={userId} clientId={SPOTIFY_CLIENT_ID} username={session?.username} />
               )}
             </section>
@@ -328,8 +336,23 @@ const RoomClient = ({ room: initialRoom, userId }: RoomClientProps) => {
                 {completed.map((item) => (
                   <div key={item.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5">
                     <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-black/40 flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm">✓</span>
+                      <div className="relative w-8 h-8 flex-shrink-0">
+                        {item.thumbnailUrl ? (
+                          <img
+                            src={item.thumbnailUrl}
+                            alt=""
+                            className="w-8 h-8 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-black/40" />
+                        )}
+                        <div className={`absolute inset-0 rounded-lg flex items-center justify-center ${
+                          item.status === 'skipped'
+                            ? 'bg-neon-pink/50'
+                            : 'bg-black/50'
+                        }`}>
+                          <span className="text-sm">{item.status === 'skipped' ? '✕' : '✓'}</span>
+                        </div>
                       </div>
                       <div className="min-w-0">
                         <p className="font-semibold text-white truncate text-sm">
@@ -343,6 +366,12 @@ const RoomClient = ({ room: initialRoom, userId }: RoomClientProps) => {
                           <span className="text-zinc-500 text-[10px] uppercase font-bold">
                             {item.addedByName || 'Chaos'}
                           </span>
+                          {item.status === 'skipped' && (
+                            <>
+                              <span className="text-zinc-600 text-[10px]">•</span>
+                              <span className="text-neon-pink text-[10px] uppercase font-bold tracking-widest">Skipped</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>

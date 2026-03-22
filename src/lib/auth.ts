@@ -46,11 +46,23 @@ export async function checkUsernameAvailable(username: string): Promise<boolean>
 }
 
 export async function signInAnonymously(): Promise<{ user: AppUser | null; error: Error | null }> {
-  const { data: { session } } = await supabase.auth.getSession();
+  // Check local session first
+  let { data: { session } } = await supabase.auth.getSession();
+  
+  // If we have a local session, MUST verify it with GoTrue (Server) to handle DB resets
   if (session && session.user) {
-    return { user: { id: session.user.id, is_anonymous: session.user.is_anonymous }, error: null };
+    const { data: { user: serverUser } } = await supabase.auth.getUser();
+    if (serverUser) {
+      await syncAuthCookies();
+      return { user: { id: serverUser.id, is_anonymous: serverUser.is_anonymous }, error: null };
+    } else {
+      // Session is stale/invalid server-side, clear it
+      await supabase.auth.signOut();
+      session = null;
+    }
   }
 
+  // Create new anonymous session
   const { data, error } = await supabase.auth.signInAnonymously()
   if (error) return { user: null, error: new Error(error.message) }
   if (!data.user) return { user: null, error: new Error('Failed to create anonymous user') }

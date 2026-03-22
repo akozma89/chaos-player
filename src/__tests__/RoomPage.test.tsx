@@ -48,7 +48,9 @@ describe('RoomPage Orchestration', () => {
     pausedAt: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    isActive: true
+    isActive: true,
+    skipVoteCount: 2,
+    allowedResources: 'both' as const,
   };
   const mockPush = jest.fn();
 

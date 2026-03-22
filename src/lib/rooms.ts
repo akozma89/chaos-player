@@ -18,6 +18,8 @@ interface CreateRoomParams {
   username: string
   isPublic?: boolean
   password?: string
+  skipVoteCount?: number
+  allowedResources?: 'youtube' | 'spotify' | 'both'
 }
 
 interface CreateRoomResult {
@@ -25,13 +27,15 @@ interface CreateRoomResult {
   error: Error | null
 }
 
-export async function createRoom({ name, hostId, username, isPublic = true, password }: CreateRoomParams): Promise<CreateRoomResult> {
+export async function createRoom({ name, hostId, username, isPublic = true, password, skipVoteCount = 2, allowedResources = 'both' }: CreateRoomParams): Promise<CreateRoomResult> {
   const { data, error } = await supabase.rpc('create_room', {
     p_name: name,
     p_host_id: hostId,
     p_username: username,
     p_is_public: isPublic,
     p_password: !isPublic ? password : null,
+    p_skip_vote_count: skipVoteCount,
+    p_allowed_resources: allowedResources,
   })
 
   if (error) return { data: null, error: new Error(error.message) }
@@ -51,6 +55,8 @@ export async function createRoom({ name, hostId, username, isPublic = true, pass
       isPublic: r.is_public,
       isPaused: r.is_paused,
       pausedAt: r.paused_at,
+      skipVoteCount: r.skip_vote_count,
+      allowedResources: r.allowed_resources,
     },
     error: null,
   }
@@ -119,6 +125,8 @@ export async function joinRoom({ roomCode, username, userId, password }: JoinRoo
     isPublic: r.is_public as boolean,
     isPaused: r.is_paused as boolean,
     pausedAt: r.paused_at as string | null,
+    skipVoteCount: r.skip_vote_count as number,
+    allowedResources: r.allowed_resources as 'youtube' | 'spotify' | 'both',
   }
 
   return { session, room, error: null }
@@ -166,6 +174,8 @@ export async function getRoomByCode(code: string): Promise<GetRoomResult> {
       isPublic: data.is_public,
       isPaused: data.is_paused,
       pausedAt: data.paused_at,
+      skipVoteCount: data.skip_vote_count,
+      allowedResources: data.allowed_resources,
     },
     error: null,
   }
@@ -219,6 +229,8 @@ export async function getPublicRooms({ search = '', page = 1, limit = 10 } = {})
       isPublic: r.is_public,
       isPaused: r.is_paused,
       pausedAt: r.paused_at,
+      skipVoteCount: r.skip_vote_count,
+      allowedResources: r.allowed_resources,
     })),
     totalCount: count || 0,
     error: null,
@@ -261,6 +273,8 @@ export async function getJoinedRooms({ userId, search = '', page = 1, limit = 10
       isPublic: s.rooms.is_public,
       isPaused: s.rooms.is_paused,
       pausedAt: s.rooms.paused_at,
+      skipVoteCount: s.rooms.skip_vote_count,
+      allowedResources: s.rooms.allowed_resources,
     }))
 
   return {
@@ -300,6 +314,8 @@ export async function getOwnedRooms({ userId, search = '', page = 1, limit = 10 
       isPublic: r.is_public,
       isPaused: r.is_paused,
       pausedAt: r.paused_at,
+      skipVoteCount: r.skip_vote_count,
+      allowedResources: r.allowed_resources,
     })),
     totalCount: count || 0,
     error: null,

@@ -13,6 +13,8 @@ export interface Room {
   isPublic: boolean
   isPaused: boolean
   pausedAt: string | null
+  skipVoteCount: number
+  allowedResources: 'youtube' | 'spotify' | 'both'
 }
 
 export interface Session {

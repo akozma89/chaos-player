@@ -15,6 +15,8 @@ export function useQueue(roomId: string, userId: string) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [recentReward, setRecentReward] = useState<{ amount: number; userId: string; queueItemId: string } | null>(null)
+  const [skipVotes, setSkipVotes] = useState<string[]>([])
+  const [activeSessionCount, setActiveSessionCount] = useState<number>(1)
   const [isSyncing, setIsSyncing] = useState(false)
   const isSyncingRef = useRef(false)
 
@@ -92,8 +94,35 @@ export function useQueue(roomId: string, userId: string) {
         isActive: data.is_active,
         isPublic: data.is_public,
         isPaused: data.is_paused,
-        pausedAt: data.paused_at
+        pausedAt: data.paused_at,
+        skipVoteCount: data.skip_vote_count,
+        allowedResources: data.allowed_resources
       })
+    }
+  }, [roomId])
+
+  const loadSkipVotes = useCallback(async (playingItemId?: string) => {
+    if (!roomId || !playingItemId) {
+      setSkipVotes([])
+      return
+    }
+    const { data } = await supabase
+      .from('skip_votes')
+      .select('user_id')
+      .eq('queue_item_id', playingItemId)
+    if (data) {
+      setSkipVotes(data.map(v => v.user_id))
+    }
+  }, [roomId])
+
+  const loadSessionCount = useCallback(async () => {
+    if (!roomId) return
+    const { count } = await supabase
+      .from('sessions')
+      .select('*', { count: 'exact', head: true })
+      .eq('room_id', roomId)
+    if (count !== null) {
+      setActiveSessionCount(count)
     }
   }, [roomId])
 
@@ -162,7 +191,8 @@ export function useQueue(roomId: string, userId: string) {
       loadQueueWithBootstrap(),
       loadUserVotes(),
       loadSession(),
-      loadRoom()
+      loadRoom(),
+      loadSessionCount()
     ]).finally(() => {
       setLoading(false)
     })
@@ -196,7 +226,9 @@ export function useQueue(roomId: string, userId: string) {
               isActive: data.is_active,
               isPublic: data.is_public,
               isPaused: data.is_paused,
-              pausedAt: data.paused_at
+              pausedAt: data.paused_at,
+              skipVoteCount: data.skip_vote_count,
+              allowedResources: data.allowed_resources
             })
           } else {
             loadRoom()
@@ -205,11 +237,66 @@ export function useQueue(roomId: string, userId: string) {
       )
       .subscribe()
 
+    const skipVotesChannel = supabase
+      .channel(`skip_votes:${roomId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'skip_votes', filter: `room_id=eq.${roomId}` },
+        () => {
+          // Find current playing id. We can't access latest state directly easily in this closure,
+          // so we'll rely on the useEffect below to catch changes, but we can also trigger a re-fetch
+          // if we had a ref. For simplicity, we trigger loadQueueWithBootstrap which will trigger items change.
+          // Wait, just refreshing queue might not fetch skip votes. We'll add a ref for playingId.
+        }
+      )
+      .subscribe()
+
+    const sessionsChannel = supabase
+      .channel(`sessions:${roomId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sessions', filter: `room_id=eq.${roomId}` },
+        () => loadSessionCount()
+      )
+      .subscribe()
+
     return () => {
       supabase.removeChannel(queueChannel)
       supabase.removeChannel(roomChannel)
+      supabase.removeChannel(skipVotesChannel)
+      supabase.removeChannel(sessionsChannel)
     }
-  }, [roomId, loadQueueWithBootstrap, loadUserVotes, loadSession, loadRoom])
+  }, [roomId, loadQueueWithBootstrap, loadUserVotes, loadSession, loadRoom, loadSessionCount])
+
+  // Split items for UI
+  const playing = items.find(i => i.status === 'playing') || null
+  const pending = computeQueueOrder(items.filter(i => i.status === 'pending'))
+
+  // Refresh skip votes when playing track changes
+  useEffect(() => {
+    if (playing?.id) {
+      loadSkipVotes(playing.id)
+    } else {
+      setSkipVotes([])
+    }
+  }, [playing?.id, loadSkipVotes])
+
+  // Also refresh skip votes on skip_votes table change by using a secondary effect or just 
+  // relying on the channel above. Since the channel above doesn't have playing.id, let's fix that.
+  useEffect(() => {
+    if (!roomId) return
+    const skipVotesChannel = supabase
+      .channel(`skip_votes_refetch:${roomId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'skip_votes', filter: `room_id=eq.${roomId}` },
+        () => {
+          if (playing?.id) loadSkipVotes(playing.id)
+        }
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(skipVotesChannel) }
+  }, [roomId, playing?.id, loadSkipVotes])
 
   const vote = useCallback(
     async (queueItemId: string, type: 'upvote' | 'downvote') => {
@@ -283,9 +370,8 @@ export function useQueue(roomId: string, userId: string) {
     }
   }, [roomId, items, loadQueue])
 
-  // Split items for UI
-  const playing = items.find(i => i.status === 'playing') || null
-  const pending = computeQueueOrder(items.filter(i => i.status === 'pending'))
+  // Split items for UI already done above but we re-declare it here for the return? 
+  // Wait, I moved playing and pending up. Let's just use them.
 
   return { 
     items, 
@@ -300,6 +386,8 @@ export function useQueue(roomId: string, userId: string) {
     recentReward,
     advanceQueue,
     isSyncing,
+    skipVotes,
+    activeSessionCount,
     refresh: loadQueueWithBootstrap 
   }
 }

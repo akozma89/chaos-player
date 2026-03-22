@@ -253,6 +253,25 @@ export async function skipTrack({ queueItemId, userId, roomId }: SkipTrackParams
   return { tokensSpent: cost, error: null }
 }
 
+export async function toggleSkipVote(queueItemId: string, userId: string, roomId: string): Promise<{ success: boolean; skipped: boolean; error: Error | null }> {
+  const { data, error } = await supabase.rpc('toggle_skip_vote', {
+    p_queue_item_id: queueItemId,
+    p_user_id: userId,
+    p_room_id: roomId
+  });
+  if (error) return { success: false, skipped: false, error: new Error(error.message) };
+  return { success: data.success, skipped: data.skipped, error: null };
+}
+
+export async function getSkipVotes(queueItemId: string): Promise<{ data: string[]; error: Error | null }> {
+  const { data, error } = await supabase
+    .from('skip_votes')
+    .select('user_id')
+    .eq('queue_item_id', queueItemId)
+  if (error) return { data: [], error: new Error(error.message) }
+  return { data: data.map(v => v.user_id), error: null }
+}
+
 export async function toggleRoomPause(roomId: string, pause: boolean): Promise<{ error: Error | null }> {
   const { error } = await supabase.rpc('toggle_room_pause', {
     p_room_id: roomId,
