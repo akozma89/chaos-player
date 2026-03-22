@@ -254,7 +254,7 @@ describe('YouTubeSearch', () => {
       expect(mockScrollIntoView).toHaveBeenCalledWith({ block: 'nearest' })
     })
 
-    it('adds selected item to queue when Enter is pressed and clears results/query', async () => {
+    it('adds selected item to queue when Enter is pressed', async () => {
       const { addToQueue } = require('../lib/queue')
       render(<YouTubeSearch roomId="room-1" userId="user-1" />)
       const input = screen.getByPlaceholderText('Search YouTube...')
@@ -279,14 +279,9 @@ describe('YouTubeSearch', () => {
         )
       })
 
-      // Verify results and query are cleared
-      await waitFor(() => {
-        expect((input as HTMLInputElement).value).toBe('')
-        expect(screen.queryByText('Track 1')).not.toBeInTheDocument()
-      })
     })
 
-    it('clears results/query when clicking Add button', async () => {
+    it('adds selected item to queue when clicking Add button', async () => {
       const { addToQueue } = require('../lib/queue')
       render(<YouTubeSearch roomId="room-1" userId="user-1" />)
       const input = screen.getByPlaceholderText('Search YouTube...')
@@ -301,8 +296,6 @@ describe('YouTubeSearch', () => {
 
       await waitFor(() => {
         expect(addToQueue).toHaveBeenCalled()
-        expect((input as HTMLInputElement).value).toBe('')
-        expect(screen.queryByText('Track 1')).not.toBeInTheDocument()
       })
     })
   })

@@ -9,9 +9,10 @@ import { useDebounce } from '../hooks/useDebounce'
 interface YouTubeSearchProps {
   roomId: string
   userId: string
+  username?: string
 }
 
-export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
+export default function YouTubeSearch({ roomId, userId, username }: YouTubeSearchProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<YouTubeSearchResult[]>([])
   const [error, setError] = useState<YouTubeError | null>(null)
@@ -86,11 +87,13 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
       await addToQueue({
         roomId,
         addedBy: userId,
+        addedByName: username,
         source: 'youtube',
         sourceId: result.sourceId,
         title: result.title,
         artist: result.channelTitle,
         duration: result.duration,
+        thumbnailUrl: result.thumbnailUrl,
       })
 
       setAddingIds((prev) => {
@@ -99,11 +102,6 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
         return next
       })
       
-      // Task 2: Close results and clear query immediately on selection
-      setResults([])
-      setQuery('')
-      setSelectedIndex(-1)
-
       setAddedIds((prev) => new Set(prev).add(id))
 
       setTimeout(() => {
@@ -114,7 +112,7 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
         })
       }, 2000)
     },
-    [roomId, userId, addingIds, addedIds]
+    [roomId, userId, username, addingIds, addedIds]
   )
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

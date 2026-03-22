@@ -3,8 +3,16 @@ import { useQueue } from '../hooks/useQueue'
 import * as queueLib from '../lib/queue'
 import type { QueueItem } from '../types'
 
+const mockQueryBuilder: any = {
+  select: jest.fn().mockImplementation(() => mockQueryBuilder),
+  eq: jest.fn().mockImplementation(() => mockQueryBuilder),
+  single: jest.fn().mockImplementation(() => mockQueryBuilder),
+  then: jest.fn((resolve) => resolve({ data: [], error: null }))
+};
+
 jest.mock('../lib/supabase', () => ({
   supabase: {
+    from: jest.fn(() => mockQueryBuilder),
     channel: jest.fn(() => ({
       on: jest.fn().mockReturnThis(),
       subscribe: jest.fn(),

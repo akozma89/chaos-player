@@ -161,34 +161,7 @@ describe('NowPlaying', () => {
     })
   })
 
-  it('host skip also triggers rollback on failure', async () => {
-    const { advanceQueue } = require('../lib/autoAdvance')
-    advanceQueue.mockResolvedValueOnce({
-      nextItem: null,
-      error: new Error('DB timeout'),
-    })
 
-    const onTrackChange = jest.fn()
-    const track = makeTrack()
-    render(
-      <NowPlaying
-        currentTrack={track}
-        queue={[track]}
-        isHost={true}
-        userId="user-1"
-        onTrackChange={onTrackChange}
-      />
-    )
-
-    await act(async () => {
-      screen.getByTestId('trigger-skip').click()
-    })
-
-    await waitFor(() => {
-      expect(onTrackChange).not.toHaveBeenCalled()
-      expect(screen.getByTestId('now-playing-error')).toBeInTheDocument()
-    })
-  })
 
   it('displays "Next Up" winner and countdown when track is nearing end (<10s)', () => {
     jest.useFakeTimers()

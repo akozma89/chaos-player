@@ -19,6 +19,9 @@ describe('Supabase Schema Validation', () => {
         updatedAt: new Date().toISOString(),
         isActive: true,
         isPublic: true,
+        isPaused: false,
+        pausedAt: null,
+        code: '123456',
       }
       expect(validateRoom(room)).toBe(true)
     })
@@ -36,6 +39,9 @@ describe('Supabase Schema Validation', () => {
         createdAt: 'now',
         updatedAt: 'now',
         isActive: 'yes', // should be boolean
+        isPaused: false,
+        pausedAt: null,
+        code: '123456',
       } as unknown as Room
       expect(validateRoom(room)).toBe(false)
     })

@@ -57,6 +57,8 @@ interface AddToQueueParams {
   artist: string
   duration: number
   addedBy: string
+  addedByName?: string
+  thumbnailUrl?: string
 }
 
 interface AddToQueueResult {
@@ -75,6 +77,8 @@ export async function addToQueue(params: AddToQueueParams): Promise<AddToQueueRe
       artist: params.artist,
       duration: params.duration,
       added_by: params.addedBy,
+      added_by_name: params.addedByName,
+      thumbnail_url: params.thumbnailUrl,
       position: 0,
       upvotes: 0,
       downvotes: 0,
@@ -95,6 +99,8 @@ export async function addToQueue(params: AddToQueueParams): Promise<AddToQueueRe
       artist: data.artist,
       duration: data.duration,
       addedBy: data.added_by,
+      addedByName: data.added_by_name,
+      thumbnailUrl: data.thumbnail_url,
       addedAt: data.added_at,
       position: data.position,
       upvotes: data.upvotes,
@@ -159,6 +165,8 @@ export async function getQueueItems(roomId: string): Promise<GetQueueResult> {
     artist: row.artist as string,
     duration: row.duration as number,
     addedBy: row.added_by as string,
+    addedByName: row.added_by_name as string,
+    thumbnailUrl: row.thumbnail_url as string,
     addedAt: row.added_at as string,
     position: row.position as number,
     upvotes: row.upvotes as number,
@@ -243,4 +251,12 @@ export async function skipTrack({ queueItemId, userId, roomId }: SkipTrackParams
   })
 
   return { tokensSpent: cost, error: null }
+}
+
+export async function toggleRoomPause(roomId: string, pause: boolean): Promise<{ error: Error | null }> {
+  const { error } = await supabase.rpc('toggle_room_pause', {
+    p_room_id: roomId,
+    p_pause: pause,
+  })
+  return { error: error ? new Error(error.message) : null }
 }

@@ -62,8 +62,14 @@ export function Queue({ items, userVotes = {}, loading, error, vote }: Props) {
 
           {/* Track info */}
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-white truncate text-sm">{item.title}</p>
-            <p className="text-gray-400 text-xs truncate">{item.artist}</p>
+            <p className="font-semibold text-white truncate text-sm leading-tight">{item.title}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-gray-400 text-[10px] truncate max-w-[120px]">{item.artist}</p>
+              <span className="text-gray-600 text-[10px]">•</span>
+              <span className="text-neon-blue/60 text-[10px] font-bold uppercase tracking-tight truncate">
+                {item.addedByName || 'Chaos'}
+              </span>
+            </div>
           </div>
 
           {/* Duration */}

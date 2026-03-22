@@ -13,9 +13,10 @@ interface SpotifySearchProps {
   userId: string
   clientId: string
   accessToken?: string
+  username?: string
 }
 
-export default function SpotifySearch({ roomId, userId, clientId, accessToken: initialToken }: SpotifySearchProps) {
+export default function SpotifySearch({ roomId, userId, clientId, accessToken: initialToken, username }: SpotifySearchProps) {
   const [token, setToken] = useState<string | null>(initialToken ?? null)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SourceSearchResult[]>([])
@@ -88,11 +89,13 @@ export default function SpotifySearch({ roomId, userId, clientId, accessToken: i
       await addToQueue({
         roomId,
         addedBy: userId,
+        addedByName: username,
         source: 'spotify',
         sourceId: result.sourceId,
         title: result.title,
         artist: result.artist,
         duration: result.duration,
+        thumbnailUrl: result.thumbnailUrl,
       })
       setAddedId(result.sourceId)
       setAddingId(null)
@@ -100,7 +103,7 @@ export default function SpotifySearch({ roomId, userId, clientId, accessToken: i
         setAddedId(null)
       }, 2000)
     },
-    [roomId, userId, addingId, addedId]
+    [roomId, userId, username, addingId, addedId]
   )
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

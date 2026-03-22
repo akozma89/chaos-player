@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { joinRoom, checkIfRoomIsPrivate } from '../lib/rooms'
 import { signInAnonymously, claimAnonymousUsername } from '../lib/auth'
 import { useStoredUsername } from '../hooks/useStoredUsername'
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function JoinRoomForm({ initialCode = '', onJoined }: Props) {
+  const searchParams = useSearchParams()
   const [roomCode, setRoomCode] = useState(initialCode.toUpperCase())
   const [username, setUsername, isLocked, isLoadingAuth, _isAnonymous] = useStoredUsername()
   const { isAvailable, isChecking } = useUsernameCheck(username)
@@ -20,6 +22,15 @@ export function JoinRoomForm({ initialCode = '', onJoined }: Props) {
   // Private room state
   const [needsPassword, setNeedsPassword] = useState(false)
   const [password, setPassword] = useState('')
+
+  // Check for password in URL on mount
+  useEffect(() => {
+    const pw = searchParams.get('pw')
+    if (pw) {
+      setPassword(pw)
+      setNeedsPassword(true)
+    }
+  }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

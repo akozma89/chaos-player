@@ -5,11 +5,13 @@ import { supabase } from '../lib/supabase'
 import { getQueueItems, castVote, computeQueueOrder, computeVoteDelta, getUserVotes } from '../lib/queue'
 import { advanceQueue as libAdvanceQueue, bootstrapQueue } from '../lib/autoAdvance'
 import { checkAndAwardCrowdPleaser } from '../lib/tokenEarn'
-import type { QueueItem } from '../types'
+import type { QueueItem, Session, Room } from '../types'
 
 export function useQueue(roomId: string, userId: string) {
   const [items, setItems] = useState<QueueItem[]>([])
   const [userVotes, setUserVotes] = useState<Record<string, 'upvote' | 'downvote'>>({})
+  const [session, setSession] = useState<Session | null>(null)
+  const [room, setRoom] = useState<Room | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [recentReward, setRecentReward] = useState<{ amount: number; userId: string; queueItemId: string } | null>(null)
@@ -33,7 +35,6 @@ export function useQueue(roomId: string, userId: string) {
       // items will contain playing and pending items
       setItems(data)
     }
-    setLoading(false)
   }, [roomId])
 
   const loadUserVotes = useCallback(async () => {
@@ -46,17 +47,65 @@ export function useQueue(roomId: string, userId: string) {
     }
   }, [roomId, userId])
 
+  const loadSession = useCallback(async () => {
+    if (!roomId || !userId) return
+    const { data, error: fetchError } = await supabase
+      .from('sessions')
+      .select()
+      .eq('room_id', roomId)
+      .eq('user_id', userId)
+      .single()
+    
+    if (fetchError) {
+      console.error('Failed to load session:', fetchError)
+    } else {
+      setSession({
+        id: data.id,
+        roomId: data.room_id,
+        userId: data.user_id,
+        username: data.username,
+        joinedAt: data.joined_at,
+        tokens: data.tokens,
+        isHost: data.is_host
+      })
+    }
+  }, [roomId, userId])
+
+  const loadRoom = useCallback(async () => {
+    if (!roomId) return
+    const { data, error: fetchError } = await supabase
+      .from('rooms')
+      .select()
+      .eq('id', roomId)
+      .single()
+    
+    if (fetchError) {
+      console.error('Failed to load room:', fetchError)
+    } else {
+      setRoom({
+        id: data.id,
+        name: data.name,
+        code: data.code,
+        hostId: data.host_id,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        isActive: data.is_active,
+        isPublic: data.is_public,
+        isPaused: data.is_paused,
+        pausedAt: data.paused_at
+      })
+    }
+  }, [roomId])
+
   const loadQueueWithBootstrap = useCallback(async () => {
     if (!roomId) return
     const { data, error: fetchError } = await getQueueItems(roomId)
     if (fetchError) {
       setError(fetchError.message)
-      setLoading(false)
       return
     }
 
     setItems(data)
-    setLoading(false)
 
     // Bootstrap check: if no track is playing, promote the top pending item
     const isPlaying = data.some(i => i.status === 'playing')
@@ -90,14 +139,8 @@ export function useQueue(roomId: string, userId: string) {
 
         if (bootstrapError) {
           console.error('Bootstrap failed after retries:', bootstrapError)
-          // On total failure, we reset sync state AND lastBootstrappedId
-          // so it can retry if a NEW update comes in later.
           setSyncing(false)
           lastBootstrappedId.current = null
-        } else {
-          // SUCCESS: DON'T setSyncing(false) here. 
-          // Wait for the real-time update where isPlaying will be true, 
-          // which will trigger setSyncing(false) at the top of loadQueueWithBootstrap.
         }
       } catch (err) {
         console.error('Bootstrap exception:', err)
@@ -106,19 +149,26 @@ export function useQueue(roomId: string, userId: string) {
     }
     performBootstrap()
   }, [roomId, setSyncing])
+
   useEffect(() => {
     if (!roomId) {
       setLoading(false)
       return
     }
 
-    // Initial load with bootstrap check
-    loadQueueWithBootstrap()
-    loadUserVotes()
+    // Initial load: wait for all essential data
+    setLoading(true)
+    Promise.all([
+      loadQueueWithBootstrap(),
+      loadUserVotes(),
+      loadSession(),
+      loadRoom()
+    ]).finally(() => {
+      setLoading(false)
+    })
 
-    // Subscribe to realtime changes — also runs bootstrap so newly added tracks auto-start
-    // Note: only subscribe to queue_items — votes are reflected via castVote RPC, no separate votes subscription needed.
-    const channel = supabase
+    // Subscribe to queue_items changes
+    const queueChannel = supabase
       .channel(`queue:${roomId}`)
       .on(
         'postgres_changes',
@@ -127,10 +177,39 @@ export function useQueue(roomId: string, userId: string) {
       )
       .subscribe()
 
+    // Subscribe to room changes (for pause sync)
+    const roomChannel = supabase
+      .channel(`room:${roomId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` },
+        (payload) => {
+          if (payload.new && typeof payload.new === 'object' && 'is_paused' in payload.new) {
+            const data = payload.new as any
+            setRoom({
+              id: data.id,
+              name: data.name,
+              code: data.code,
+              hostId: data.host_id,
+              createdAt: data.created_at,
+              updatedAt: data.updated_at,
+              isActive: data.is_active,
+              isPublic: data.is_public,
+              isPaused: data.is_paused,
+              pausedAt: data.paused_at
+            })
+          } else {
+            loadRoom()
+          }
+        }
+      )
+      .subscribe()
+
     return () => {
-      supabase.removeChannel(channel)
+      supabase.removeChannel(queueChannel)
+      supabase.removeChannel(roomChannel)
     }
-  }, [roomId, loadQueueWithBootstrap, loadUserVotes])
+  }, [roomId, loadQueueWithBootstrap, loadUserVotes, loadSession, loadRoom])
 
   const vote = useCallback(
     async (queueItemId: string, type: 'upvote' | 'downvote') => {
@@ -138,7 +217,7 @@ export function useQueue(roomId: string, userId: string) {
       const finalType = prevVote === type ? null : type
       const { upvoteDelta, downvoteDelta } = computeVoteDelta(finalType, prevVote)
 
-      // Optimistic update using delta (handles vote flips and toggles correctly)
+      // Optimistic update
       setItems((prev) =>
         prev.map((item) => {
           if (item.id !== queueItemId) return item
@@ -150,7 +229,6 @@ export function useQueue(roomId: string, userId: string) {
         })
       )
 
-      // Record the new vote direction (or removal) immediately in state
       setUserVotes((prev) => {
         const next = { ...prev }
         if (finalType === null) {
@@ -172,7 +250,6 @@ export function useQueue(roomId: string, userId: string) {
         })
         await loadQueue()
       } else {
-        // Successful vote (only check for reward if not a removal)
         if (finalType !== null) {
           const rewardResult = await checkAndAwardCrowdPleaser({ queueItemId, roomId })
           if (rewardResult.awarded) {
@@ -181,7 +258,6 @@ export function useQueue(roomId: string, userId: string) {
               userId: rewardResult.userId!,
               queueItemId: queueItemId
             })
-            // Auto-clear reward notification after 5s
             setTimeout(() => setRecentReward(null), 5000)
           }
         }
@@ -219,6 +295,8 @@ export function useQueue(roomId: string, userId: string) {
     error, 
     vote, 
     userVotes,
+    session,
+    room,
     recentReward,
     advanceQueue,
     isSyncing,

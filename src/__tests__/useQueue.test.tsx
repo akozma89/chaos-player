@@ -5,8 +5,16 @@ import * as queueLib from '../lib/queue'
 import * as autoAdvanceLib from '../lib/autoAdvance'
 import type { QueueItem } from '../types'
 
+const mockQueryBuilder: any = {
+  select: jest.fn().mockImplementation(() => mockQueryBuilder),
+  eq: jest.fn().mockImplementation(() => mockQueryBuilder),
+  single: jest.fn().mockImplementation(() => mockQueryBuilder),
+  then: jest.fn((resolve) => resolve({ data: [], error: null }))
+};
+
 jest.mock('../lib/supabase', () => ({
   supabase: {
+    from: jest.fn(() => mockQueryBuilder),
     channel: jest.fn(() => ({
       on: jest.fn().mockReturnThis(),
       subscribe: jest.fn(),
@@ -84,8 +92,8 @@ describe('useQueue bootstrap', () => {
 
     let onUpdate: any
     ;(supabase.channel as jest.Mock).mockReturnValue({
-      on: jest.fn().mockImplementation((_event, _filter, callback) => {
-        onUpdate = callback
+      on: jest.fn().mockImplementation((_event, filter, callback) => {
+        if (filter.table === 'queue_items') onUpdate = callback
         return { subscribe: jest.fn() }
       }),
       subscribe: jest.fn(),
@@ -118,8 +126,8 @@ describe('useQueue bootstrap', () => {
 
     let onUpdate: any
     ;(supabase.channel as jest.Mock).mockReturnValue({
-      on: jest.fn().mockImplementation((_event, _filter, callback) => {
-        onUpdate = callback
+      on: jest.fn().mockImplementation((_event, filter, callback) => {
+        if (filter.table === 'queue_items') onUpdate = callback
         return { subscribe: jest.fn() }
       }),
       subscribe: jest.fn(),
@@ -180,8 +188,8 @@ describe('useQueue bootstrap', () => {
     
     let onUpdate: any
     ;(supabase.channel as jest.Mock).mockReturnValue({
-      on: jest.fn().mockImplementation((_event, _filter, callback) => {
-        onUpdate = callback
+      on: jest.fn().mockImplementation((_event, filter, callback) => {
+        if (filter.table === 'queue_items') onUpdate = callback
         return { subscribe: jest.fn() }
       }),
       subscribe: jest.fn(),

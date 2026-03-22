@@ -2,9 +2,13 @@
   "permissions": {
     "allow": [
       "WebSearch",
-      "WebFetch(domain:www.npmjs.com)"
+      "WebFetch(domain:www.npmjs.com)",
+      "mcp__ide__getDiagnostics",
+      "Bash(grep:*)",
+      "Bash(npx jest:*)"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "aethelgard-memory"
   ]

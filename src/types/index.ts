@@ -5,11 +5,14 @@
 export interface Room {
   id: string
   name: string
+  code: string
   hostId: string
   createdAt: string
   updatedAt: string
   isActive: boolean
   isPublic: boolean
+  isPaused: boolean
+  pausedAt: string | null
 }
 
 export interface Session {
@@ -30,7 +33,9 @@ export interface QueueItem {
   title: string
   artist: string
   duration: number
+  thumbnailUrl?: string
   addedBy: string
+  addedByName?: string
   addedAt: string
   position: number
   upvotes: number

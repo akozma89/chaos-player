@@ -125,11 +125,9 @@ export function NowPlaying({
         <YoutubePlayer
           key={currentTrack.sourceId}
           videoId={currentTrack.sourceId}
-          isHost={isHost}
           playingSince={currentTrack.playingSince}
           isSyncing={isSyncing}
           onEnded={tryAdvance}
-          onSkip={tryAdvance}
         />
       ) : (
         <div className="bg-zinc-800 aspect-video flex items-center justify-center rounded-lg border border-white/10">

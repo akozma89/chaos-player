@@ -12,8 +12,8 @@ jest.mock('next/navigation');
 jest.mock('../lib/auth');
 jest.mock('../lib/rooms');
 
-jest.mock('../components/NowPlaying', () => ({
-  NowPlaying: ({ currentTrack, onTrackChange }: any) => (
+jest.mock('../components/UnifiedPlayer', () => ({
+  UnifiedPlayer: ({ currentTrack, onTrackChange }: any) => (
     <div data-testid="mock-now-playing">
       {currentTrack ? `Playing: ${currentTrack.title}` : 'Nothing playing'}
       <button data-testid="advance-btn" onClick={onTrackChange}>Advance</button>
@@ -38,7 +38,18 @@ jest.mock('../components/YouTubeSearch', () => ({
 describe('RoomPage Orchestration', () => {
   const mockParams = { code: 'TEST12' };
   const mockUser = { id: 'user-123' };
-  const mockRoom = { id: 'room-uuid', code: 'TEST12', name: 'Test Room' };
+  const mockRoom = { 
+    id: 'room-uuid', 
+    code: 'TEST12', 
+    name: 'Test Room', 
+    hostId: 'host-uuid', 
+    isPublic: true,
+    isPaused: false, 
+    pausedAt: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    isActive: true
+  };
   const mockPush = jest.fn();
 
   beforeEach(() => {
@@ -86,7 +97,7 @@ describe('RoomPage Orchestration', () => {
       expect(screen.getByTestId('mock-now-playing')).toBeInTheDocument();
       expect(screen.getByTestId('mock-queue')).toBeInTheDocument();
       expect(screen.getByTestId('mock-leaderboard')).toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: /ROOM.*Test Room/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Test Room/i })).toBeInTheDocument();
     });
   });
 
@@ -154,7 +165,7 @@ describe('RoomPage Orchestration', () => {
     rerender(<RoomClient room={mockRoom} userId={mockUser.id} />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Next Winner:/i)).toBeInTheDocument();
+      expect(screen.getByText(/Coming Up Next:/i)).toBeInTheDocument();
       expect(screen.getByText('Track 2')).toBeInTheDocument();
     });
   });

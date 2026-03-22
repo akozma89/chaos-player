@@ -66,22 +66,38 @@ function RegisterForm() {
   }
 
   return (
-    <div className="w-full max-w-sm">
-      <Link href="/" className="text-gray-400 hover:text-white mb-6 text-sm block">
-        ← Back to Home
+    <div className="w-full max-w-md bg-gray-900/40 backdrop-blur-md border border-gray-800 rounded-2xl p-6 sm:p-8 shadow-2xl">
+      <Link href="/" className="text-gray-400 hover:text-white mb-6 text-sm flex items-center gap-2 w-fit transition-colors">
+        <span>←</span> Back to Home
       </Link>
-      <h2 className="text-2xl font-bold text-white mb-6">
-        {isUpgrade ? `Keep your name: ${username}` : 'Register'}
-      </h2>
-      <p className="text-gray-400 text-sm mb-6">
+      
+      {!isUpgrade ? (
+        <div className="flex mb-8 border-b border-gray-800">
+          <Link 
+            href="/login" 
+            className="flex-1 pb-3 text-center border-b-2 border-transparent text-2xl font-bold text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            Login
+          </Link>
+          <div className="flex-1 pb-3 text-center border-b-2 border-neon-pink text-2xl font-bold text-white">
+            Register
+          </div>
+        </div>
+      ) : (
+        <h2 className="text-2xl font-bold text-white mb-2">
+          Keep your name: {username}
+        </h2>
+      )}
+      
+      <p className={`text-gray-400 text-sm ${!isUpgrade ? 'mb-6 text-center' : 'mb-6'}`}>
         {isUpgrade 
           ? 'Set a password to secure your account and name permanently.' 
           : 'Choose a name and password to start your musical journey.'}
       </p>
       
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div>
-          <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1">
+          <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1.5 flex items-center gap-2">
             Username
           </label>
           <div className="relative">
@@ -90,14 +106,14 @@ function RegisterForm() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Username"
+              placeholder="Enter your username"
               maxLength={30}
               required
               disabled={isUpgrade}
-              className={`w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-neon-pink ${isUpgrade ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`w-full px-4 py-3 bg-gray-950/50 border border-gray-700/50 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-neon-pink/50 focus:border-neon-pink transition-all ${isUpgrade ? 'opacity-50 cursor-not-allowed' : ''}`}
             />
             {!isUpgrade && username.trim() && (
-              <div className={`absolute right-3 top-2.5 text-sm ${isChecking ? 'text-gray-400' : isAvailable === false ? 'text-red-400' : isAvailable === true ? 'text-green-400' : ''}`}>
+              <div className={`absolute right-4 top-3 text-sm font-medium ${isChecking ? 'text-gray-400' : isAvailable === false ? 'text-red-400' : isAvailable === true ? 'text-green-400' : ''}`}>
                 {isChecking ? 'Checking...' : isAvailable === false ? 'Taken' : isAvailable === true ? 'Available' : ''}
               </div>
             )}
@@ -105,7 +121,7 @@ function RegisterForm() {
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
+          <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1.5">
             Password
           </label>
           <input
@@ -116,29 +132,29 @@ function RegisterForm() {
             placeholder="••••••••"
             required
             minLength={6}
-            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-neon-pink"
+            className="w-full px-4 py-3 bg-gray-950/50 border border-gray-700/50 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-neon-pink/50 focus:border-neon-pink transition-all"
           />
         </div>
 
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && (
+          <div className="p-3 bg-red-950/30 border border-red-900/50 rounded-lg">
+            <p className="text-red-400 text-sm text-center">{error}</p>
+          </div>
+        )}
 
         <button
           type="submit"
           disabled={loading || !username.trim() || !password || (!isUpgrade && isAvailable === false)}
-          className="w-full px-6 py-3 bg-neon-pink text-black font-bold rounded-lg hover:bg-neon-cyan transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+          className="w-full px-6 py-3.5 bg-neon-pink text-black font-bold rounded-xl hover:bg-neon-cyan focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 focus:ring-offset-2 focus:ring-offset-gray-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2 shadow-[0_0_15px_rgba(255,105,180,0.3)] hover:shadow-[0_0_20px_rgba(0,255,255,0.5)] flex justify-center items-center"
         >
-          {loading ? 'Processing...' : isUpgrade ? 'Secure Account' : 'Register'}
+          {loading ? (
+             <span className="flex items-center gap-2">
+               <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+               Processing...
+             </span>
+          ) : isUpgrade ? 'Secure Account' : 'Create account'}
         </button>
       </form>
-      
-      {!isUpgrade && (
-        <p className="mt-6 text-gray-400 text-sm text-center">
-          Already have an account?{' '}
-          <Link href="/login" className="text-neon-pink hover:underline">
-            Login here
-          </Link>
-        </p>
-      )}
     </div>
   )
 }

@@ -49,6 +49,8 @@ export async function createRoom({ name, hostId, username, isPublic = true, pass
       updatedAt: r.updated_at,
       isActive: r.is_active,
       isPublic: r.is_public,
+      isPaused: r.is_paused,
+      pausedAt: r.paused_at,
     },
     error: null,
   }
@@ -115,6 +117,8 @@ export async function joinRoom({ roomCode, username, userId, password }: JoinRoo
     updatedAt: r.updated_at as string,
     isActive: r.is_active as boolean,
     isPublic: r.is_public as boolean,
+    isPaused: r.is_paused as boolean,
+    pausedAt: r.paused_at as string | null,
   }
 
   return { session, room, error: null }
@@ -160,9 +164,22 @@ export async function getRoomByCode(code: string): Promise<GetRoomResult> {
       updatedAt: data.updated_at,
       isActive: data.is_active,
       isPublic: data.is_public,
+      isPaused: data.is_paused,
+      pausedAt: data.paused_at,
     },
     error: null,
   }
+}
+
+export async function getRoomPassword(roomId: string): Promise<{ password: string | null; error: Error | null }> {
+  const { data, error } = await supabase
+    .from('room_secrets')
+    .select('password')
+    .eq('room_id', roomId)
+    .maybeSingle()
+
+  if (error) return { password: null, error: new Error(error.message) }
+  return { password: data?.password ?? null, error: null }
 }
 
 interface RoomListResult {
@@ -200,6 +217,8 @@ export async function getPublicRooms({ search = '', page = 1, limit = 10 } = {})
       updatedAt: r.updated_at,
       isActive: r.is_active,
       isPublic: r.is_public,
+      isPaused: r.is_paused,
+      pausedAt: r.paused_at,
     })),
     totalCount: count || 0,
     error: null,
@@ -240,6 +259,8 @@ export async function getJoinedRooms({ userId, search = '', page = 1, limit = 10
       updatedAt: s.rooms.updated_at,
       isActive: s.rooms.is_active,
       isPublic: s.rooms.is_public,
+      isPaused: s.rooms.is_paused,
+      pausedAt: s.rooms.paused_at,
     }))
 
   return {
@@ -277,6 +298,8 @@ export async function getOwnedRooms({ userId, search = '', page = 1, limit = 10 
       updatedAt: r.updated_at,
       isActive: r.is_active,
       isPublic: r.is_public,
+      isPaused: r.is_paused,
+      pausedAt: r.paused_at,
     })),
     totalCount: count || 0,
     error: null,

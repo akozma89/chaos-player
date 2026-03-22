@@ -32,15 +32,27 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <Link href="/" className="text-gray-400 hover:text-white mb-6 text-sm block">
-          ← Back to Home
+    <main className="min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md bg-gray-900/40 backdrop-blur-md border border-gray-800 rounded-2xl p-6 sm:p-8 shadow-2xl">
+        <Link href="/" className="text-gray-400 hover:text-white mb-6 text-sm flex items-center gap-2 w-fit transition-colors">
+          <span>←</span> Back to Home
         </Link>
-        <h2 className="text-2xl font-bold text-white mb-6">Login</h2>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        
+        <div className="flex mb-8 border-b border-gray-800">
+          <div className="flex-1 pb-3 text-center border-b-2 border-neon-cyan text-2xl font-bold text-white">
+            Login
+          </div>
+          <Link 
+            href="/register" 
+            className="flex-1 pb-3 text-center border-b-2 border-transparent text-2xl font-bold text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            Register
+          </Link>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1">
+            <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1.5 flex items-center gap-2">
               Username
             </label>
             <input
@@ -48,15 +60,15 @@ export default function LoginPage() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Username"
+              placeholder="Enter your username"
               maxLength={30}
               required
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-neon-cyan"
+              className="w-full px-4 py-3 bg-gray-950/50 border border-gray-700/50 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 focus:border-neon-cyan transition-all"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1.5">
               Password
             </label>
             <input
@@ -66,27 +78,31 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-neon-cyan"
+              className="w-full px-4 py-3 bg-gray-950/50 border border-gray-700/50 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 focus:border-neon-cyan transition-all"
             />
           </div>
 
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && (
+            <div className="p-3 bg-red-950/30 border border-red-900/50 rounded-lg">
+              <p className="text-red-400 text-sm text-center">{error}</p>
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={loading || !username.trim() || !password}
-            className="w-full px-6 py-3 bg-neon-cyan text-black font-bold rounded-lg hover:bg-neon-pink transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+            className="w-full px-6 py-3.5 bg-neon-cyan text-black font-bold rounded-xl hover:bg-neon-pink focus:outline-none focus:ring-2 focus:ring-neon-pink/50 focus:ring-offset-2 focus:ring-offset-gray-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2 shadow-[0_0_15px_rgba(0,255,255,0.3)] hover:shadow-[0_0_20px_rgba(255,105,180,0.5)] flex justify-center items-center"
           >
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                Logging in...
+              </span>
+            ) : (
+              'Login to your account'
+            )}
           </button>
         </form>
-        
-        <p className="mt-6 text-gray-400 text-sm text-center">
-          Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-neon-cyan hover:underline">
-            Register here
-          </Link>
-        </p>
       </div>
     </main>
   )
