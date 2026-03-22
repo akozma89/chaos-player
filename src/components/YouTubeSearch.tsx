@@ -194,7 +194,7 @@ export default function YouTubeSearch({ roomId, userId }: YouTubeSearchProps) {
       )}
 
       {isFocused && results.length > 0 && (
-        <ul className="absolute z-[100] w-full mt-2 bg-zinc-900/98 backdrop-blur-2xl border border-white/20 rounded-xl shadow-2xl overflow-hidden max-h-80 overflow-y-auto ring-1 ring-white/10">
+        <ul className="absolute z-[100] w-full mt-2 bg-zinc-900 backdrop-blur-2xl border border-white/20 rounded-xl shadow-2xl overflow-hidden max-h-80 overflow-y-auto ring-1 ring-white/10">
           {results.map((result, index) => {
             const isAdded = addedIds.has(result.sourceId)
             const isAdding = addingIds.has(result.sourceId)

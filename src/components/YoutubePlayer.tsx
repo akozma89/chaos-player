@@ -18,7 +18,6 @@ export function YoutubePlayer({ videoId, isHost, playingSince, isSyncing = false
   const containerRef = useRef<HTMLDivElement>(null)
   const playerTargetRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<YTPlayer | null>(null)
-  const [isAutoplayBlocked, setIsAutoplayBlocked] = useState(true)
 
   // Custom event listener — used by tests and internally to bubble onEnded
   useEffect(() => {
@@ -56,13 +55,8 @@ export function YoutubePlayer({ videoId, isHost, playingSince, isSyncing = false
           },
           onStateChange: (e) => {
             if (e.data === YT_STATES.PLAYING) {
-              // Video is now playing — unMute via postMessage (YouTube IFrame API),
-              // NOT via element.muted which is blocked by the browser autoplay policy
-              // only unMute if the guard is cleared
-              if (!isAutoplayBlocked) {
-                player?.unMute()
-                player?.setVolume(100)
-              }
+              player?.unMute()
+              player?.setVolume(100)
             }
             if (e.data === YT_STATES.ENDED) {
               containerRef.current?.dispatchEvent(
@@ -80,10 +74,9 @@ export function YoutubePlayer({ videoId, isHost, playingSince, isSyncing = false
       player?.destroy()
       playerRef.current = null
     }
-  }, [videoId, playingSince, isAutoplayBlocked])
+  }, [videoId, playingSince])
 
   const handleEnableAutoplay = () => {
-    setIsAutoplayBlocked(false)
     if (playerRef.current) {
       playerRef.current.unMute()
       playerRef.current.setVolume(100)
@@ -102,10 +95,6 @@ export function YoutubePlayer({ videoId, isHost, playingSince, isSyncing = false
       <div className="absolute inset-0 z-10" style={{ pointerEvents: 'all' }} />
 
       <ChaosSyncOverlay isSyncing={isSyncing} />
-
-      {isAutoplayBlocked && (
-        <AutoplayGuard onEnable={handleEnableAutoplay} />
-      )}
 
       {isHost && (
         <button
