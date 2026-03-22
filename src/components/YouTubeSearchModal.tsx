@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import Image from 'next/image'
 import { searchYouTubeWithErrors, YouTubeSearchResult, YouTubeError } from '../lib/youtube'
 import { addToQueue } from '../lib/queue'
 import { useDebounce } from '../hooks/useDebounce'
@@ -57,7 +56,7 @@ export default function YouTubeSearchModal({ roomId, userId, username }: YouTube
         duration: result.duration,
         addedBy: userId,
         addedByName: username,
-        thumbnailUrl: result.thumbnail,
+        thumbnailUrl: result.thumbnailUrl,
       })
 
       const next = new Set(addingIds)

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import Image from 'next/image'
 import { searchSpotify } from '../lib/spotify'
 import type { SourceSearchResult } from '../lib/spotify'
 import { addToQueue } from '../lib/queue'
