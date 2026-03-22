@@ -25,8 +25,6 @@ export default function YouTubeSearchModal({ roomId, userId, username }: YouTube
   useEffect(() => {
     async function search() {
       if (!debouncedQuery) {
-        setResults([])
-        setError(null)
         setIsSearching(false)
         return
       }
@@ -98,17 +96,15 @@ export default function YouTubeSearchModal({ roomId, userId, username }: YouTube
             placeholder="Search YouTube..."
             className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-neon-blue/50 focus:ring-1 focus:ring-neon-blue/20 transition"
           />
-          {isSearching && (
+          {isSearching ? (
             <div className="absolute right-4 top-1/2 -translate-y-1/2">
-              <div className="w-4 h-4 border-2 border-neon-blue/30 border-t-neon-blue rounded-full animate-spin" />
+              <div className="w-4 h-4 rounded-full border-2 border-zinc-600 border-t-white" style={{ animation: 'spin 0.7s linear infinite' }} />
             </div>
-          )}
-          {query && (
+          ) : query && (
             <button
               aria-label="Clear search"
               onClick={() => {
                 setQuery('')
-                setResults([])
                 inputRef.current?.focus()
               }}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition"

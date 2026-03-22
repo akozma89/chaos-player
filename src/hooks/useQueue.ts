@@ -137,7 +137,8 @@ export function useQueue(roomId: string, userId: string) {
     setItems(data)
 
     // Bootstrap check: if no track is playing, promote the top pending item
-    const isPlaying = data.some(i => i.status === 'playing')
+    const playingItem = data.find(i => i.status === 'playing')
+    const isPlaying = !!playingItem
     const pendingItems = computeQueueOrder(data.filter(i => i.status === 'pending'))
     const topPending = pendingItems[0]
 
@@ -145,6 +146,25 @@ export function useQueue(roomId: string, userId: string) {
     if (!isPlaying && !topPending) {
       lastBootstrappedId.current = null
       return
+    }
+
+    // Overdue check: track is still marked 'playing' but its duration has elapsed.
+    // This happens when the room was empty when the track finished — no client was
+    // present to call advanceQueue via the onEnded callback.
+    if (playingItem?.playingSince && playingItem.duration > 0) {
+      const endTime = new Date(playingItem.playingSince).getTime() + playingItem.duration * 1000
+      if (Date.now() > endTime) {
+        // Confirm the room isn't paused before advancing (paused rooms have adjusted playingSince)
+        const { data: roomRow } = await supabase
+          .from('rooms')
+          .select('is_paused')
+          .eq('id', roomId)
+          .single()
+        if (!roomRow?.is_paused) {
+          await libAdvanceQueue({ currentItemId: playingItem.id, queue: data, roomId })
+          return
+        }
+      }
     }
 
     if (isPlaying || !topPending) {

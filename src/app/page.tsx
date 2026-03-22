@@ -133,7 +133,7 @@ export default function Home() {
 
       {/* ── How It Works ─────────────────────────────────────── */}
       <section className="w-full max-w-4xl mb-16">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div className="flex flex-col items-center text-center gap-4 p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 hover:border-neon-pink/30 transition-colors">
             <div className="w-14 h-14 rounded-2xl bg-neon-pink/10 border border-neon-pink/25 flex items-center justify-center text-3xl">🏠</div>
             <div>
@@ -155,6 +155,7 @@ export default function Home() {
               <p className="text-zinc-500 text-xs leading-relaxed">Upvote the bangers, downvote the rest — the crowd decides</p>
             </div>
           </div>
+          {/* TODO: re-enable when token system is ready
           <div className="flex flex-col items-center text-center gap-4 p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 hover:border-neon-green/30 transition-colors">
             <div className="w-14 h-14 rounded-2xl bg-neon-green/10 border border-neon-green/25 flex items-center justify-center text-3xl">💎</div>
             <div>
@@ -162,6 +163,7 @@ export default function Home() {
               <p className="text-zinc-500 text-xs leading-relaxed">Crowd pleasers earn tokens — the best taste wins</p>
             </div>
           </div>
+          */}
         </div>
       </section>
 
