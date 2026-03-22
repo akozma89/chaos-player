@@ -17,6 +17,7 @@ import { TrackAddedToast } from '../../../components/TrackAddedToast';
 
 const SPOTIFY_CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID ?? ''
 
+import Image from 'next/image';
 import { Room } from '../../../types';
 
 interface RoomClientProps {
@@ -338,10 +339,12 @@ const RoomClient = ({ room: initialRoom, userId }: RoomClientProps) => {
                     <div className="flex items-center gap-4 min-w-0">
                       <div className="relative w-8 h-8 flex-shrink-0">
                         {item.thumbnailUrl ? (
-                          <img
+                          <Image
                             src={item.thumbnailUrl}
                             alt=""
-                            className="w-8 h-8 rounded-lg object-cover"
+                            fill
+                            sizes="32px"
+                            className="rounded-lg object-cover"
                           />
                         ) : (
                           <div className="w-8 h-8 rounded-lg bg-black/40" />
