@@ -366,6 +366,7 @@ export function useQueue(roomId: string, userId: string) {
       supabase.removeChannel(skipRequestsChannel)
       supabase.removeChannel(vetoVotesChannel)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, loadQueueWithBootstrap, loadUserVotes, loadSession, loadRoom, loadSessionCount, loadActiveSkipRequest])
 
   // Split items for UI
@@ -393,6 +394,7 @@ export function useQueue(roomId: string, userId: string) {
       loadActiveSkipRequest(itemsRef.current.find(i => i.status === 'playing')?.id)
     }, Math.max(0, delay) + 500) // +500ms buffer for clock skew
     return () => clearTimeout(timeout)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, activeSkipRequest?.id, loadActiveSkipRequest])
 
   // Subscriptions for skip_votes and veto_votes that need playing.id or skipRequest.id

@@ -1,10 +1,11 @@
 {
-  "enabledMcpjsonServers": [
-    "aethelgard-memory"
-  ],
   "permissions": {
     "allow": [
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npm run:*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "aethelgard-memory"
+  ]
 }

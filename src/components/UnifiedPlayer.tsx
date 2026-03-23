@@ -183,7 +183,7 @@ export function UnifiedPlayer({
       return
     }
     setAdvanceError(null)
-    onTrackChange?.()
+    onTrackChange?.(null)
   }, [currentTrack, userId, queue, activeSessionCount, onTrackChange])
 
   const handleTogglePause = async () => {
