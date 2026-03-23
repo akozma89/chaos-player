@@ -46,28 +46,27 @@ export default function SkipVetoOverlay({
   const progress = Math.min(100, (vetoCount / thresholdCount) * 100)
 
   return (
-    <div 
+    <div
       data-testid="skip-veto-overlay"
-      className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/70 backdrop-blur-md border-4 border-neon-magenta/20 animate-pulse"
+      className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/60"
     >
-      <div className="bg-zinc-900/90 p-8 rounded-2xl border-2 border-neon-magenta shadow-[0_0_30px_rgba(255,0,255,0.3)] max-w-sm w-full space-y-6 text-center">
+      <div className="bg-zinc-900 p-6 rounded-xl border border-neon-magenta/50 max-w-sm w-full space-y-4 text-center">
         <div className="space-y-2">
-          <h2 className="text-2xl font-black text-neon-magenta uppercase tracking-tighter italic drop-shadow-[0_0_8px_rgba(255,0,255,0.5)]">
-            Host requested a skip
+          <h2 className="text-xl font-bold text-neon-magenta uppercase tracking-wide">
+            Host Skip Proposed
           </h2>
-          <p className="text-zinc-400 text-sm font-medium">
-            The community has {`${timeLeft}s`} to veto this skip.
+          <p className="text-zinc-300 text-sm">
+            Users can veto within {`${timeLeft}s`}
           </p>
         </div>
 
-        <div className="space-y-3">
-          <div className="flex justify-between text-xs font-mono text-zinc-500 uppercase tracking-widest">
-            <span>Veto Progress</span>
-            <span className="text-neon-magenta font-bold">{vetoCount} / {thresholdCount} vetoes</span>
+        <div className="space-y-2">
+          <div className="text-xs text-zinc-400">
+            {vetoCount} of {thresholdCount} vetoes needed
           </div>
-          <div className="h-4 bg-zinc-800 rounded-full overflow-hidden p-1 border border-zinc-700">
-            <div 
-              className="h-full bg-gradient-to-r from-neon-magenta to-magenta-400 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(255,0,255,0.5)]"
+          <div className="w-full h-2 bg-zinc-800 rounded border border-zinc-700">
+            <div
+              className="h-full bg-neon-magenta rounded transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -76,18 +75,16 @@ export default function SkipVetoOverlay({
         <button
           onClick={onVeto}
           disabled={isVetoedByUser || isHost}
-          className={`w-full py-4 rounded-xl font-black uppercase tracking-widest transition-all duration-300 transform hover:scale-105 active:scale-95 ${
-            isVetoedByUser || isHost
-              ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border-zinc-700'
-              : 'bg-transparent text-neon-magenta border-2 border-neon-magenta hover:bg-neon-magenta/10 shadow-[0_0_15px_rgba(255,0,255,0.2)]'
+          className={`w-full py-3 rounded-lg font-bold text-sm transition-all duration-200 ${
+            isVetoedByUser
+              ? 'bg-neon-green/20 text-neon-green border border-neon-green/50 cursor-default'
+              : isHost
+              ? 'bg-zinc-800/50 text-zinc-500 border border-zinc-700 cursor-not-allowed'
+              : 'bg-neon-magenta/20 text-neon-magenta border-2 border-neon-magenta hover:bg-neon-magenta/30 hover:shadow-[0_0_20px_rgba(255,0,255,0.3)] active:scale-95'
           }`}
         >
-          {isVetoedByUser ? 'Veto Cast' : isHost ? 'Host cannot veto' : 'Veto Skip'}
+          {isVetoedByUser ? '✓ Veto Cast' : isHost ? 'Host Cannot Vote' : 'Cast Veto'}
         </button>
-        
-        <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-[0.2em]">
-          Democracy requires vigilance
-        </p>
       </div>
     </div>
   )

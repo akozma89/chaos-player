@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { YoutubePlayer } from './YoutubePlayer'
 import { SpotifyPlayer } from './SpotifyPlayer'
 import { advanceQueue, skipQueue, pickNextTrack } from '../lib/autoAdvance'
+import { requestHostSkip } from '../lib/moderation'
 import { toggleRoomPause } from '../lib/queue'
 import type { QueueItem, Room } from '../types'
 
@@ -153,18 +154,37 @@ export function UnifiedPlayer({
 
   const trySkip = useCallback(async () => {
     if (!currentTrack) return
-    const { nextItem, error } = await skipQueue({
-      currentItemId: currentTrack.id,
-      queue,
+
+    // If only the host is in the room, skip instantly (no one to veto)
+    if (activeSessionCount <= 1) {
+      const { nextItem, error } = await skipQueue({
+        currentItemId: currentTrack.id,
+        queue,
+        roomId: currentTrack.roomId,
+      })
+      if (error) {
+        setAdvanceError(error.message)
+        return
+      }
+      setAdvanceError(null)
+      onTrackChange?.(nextItem)
+      return
+    }
+
+    // Otherwise, host skip creates a veto window (30s) for other users to vote
+    const { error } = await requestHostSkip({
       roomId: currentTrack.roomId,
+      queueItemId: currentTrack.id,
+      hostId: userId,
+      durationMs: 30000,
     })
     if (error) {
       setAdvanceError(error.message)
       return
     }
     setAdvanceError(null)
-    onTrackChange?.(nextItem)
-  }, [currentTrack, queue, onTrackChange])
+    onTrackChange?.()
+  }, [currentTrack, userId, queue, activeSessionCount, onTrackChange])
 
   const handleTogglePause = async () => {
     if (!room) return
@@ -373,10 +393,11 @@ export function UnifiedPlayer({
             </button>
           )}
 
-          {/* Host Force Skip / Guest Token Skip */}
+          {/* Host Propose Skip / Guest Token Skip */}
           {(isHost || onTokenSkip) && (
             <button
               onClick={isHost ? trySkip : onTokenSkip}
+              title={isHost ? 'Propose skip (30s veto window)' : 'Use tokens to force skip'}
               className={`group/skip relative p-3 rounded-full border border-white/10 bg-white/5 hover:bg-neon-pink/10 hover:border-neon-pink/30 transition-all ${
                 !isHost && 'hover:shadow-[0_0_20px_rgba(255,16,240,0.2)]'
               }`}

@@ -94,15 +94,16 @@ export default function ModerationPanel({
         Host Controls
       </h2>
 
-      {/* Host skip override */}
+      {/* Host skip controls */}
       <div className="mb-4 space-y-2">
         <button
           onClick={handleHostSkip}
           disabled={!currentQueueItemId || skipState === 'loading'}
           className="w-full rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40"
           data-testid="host-skip-btn"
+          title="Skip immediately without giving users a veto window"
         >
-          {skipState === 'loading' ? 'Skipping…' : 'Skip Override (Free)'}
+          {skipState === 'loading' ? 'Skipping…' : 'Skip Now (Instant)'}
         </button>
 
         <button
@@ -110,8 +111,9 @@ export default function ModerationPanel({
           disabled={!currentQueueItemId || democSkipState === 'loading'}
           className="w-full rounded-lg border-2 border-red-500 px-4 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
           data-testid="democratic-skip-btn"
+          title="Propose a skip and give users 30 seconds to veto"
         >
-          {democSkipState === 'loading' ? 'Requesting...' : 'Democratic Skip (30s Veto)'}
+          {democSkipState === 'loading' ? 'Proposing...' : 'Propose Skip (Users Vote)'}
         </button>
       </div>
 

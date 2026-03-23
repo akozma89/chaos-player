@@ -141,6 +141,9 @@ export function useQueue(roomId: string, userId: string) {
       return
     }
 
+    // Auto-approve any expired skip requests before checking for active ones
+    await supabase.rpc('approve_expired_skip_requests', { p_room_id: roomId })
+
     const { data: request, error: reqError } = await supabase
       .from('skip_requests')
       .select()
@@ -333,10 +336,13 @@ export function useQueue(roomId: string, userId: string) {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'skip_requests', filter: `room_id=eq.${roomId}` },
         () => {
-          // We'll rely on the useEffect below that watches playing?.id
-          // But if playing track is same and status changes to approved/vetoed, we need to refresh.
-          // Since we don't have playing?.id here, we'll re-fetch queue first which updates playing.
+          // When skip_requests change, reload both the queue and the active skip request
           loadQueueWithBootstrap()
+          // Also load active skip request immediately
+          const playingItem = itemsRef.current?.find(i => i.status === 'playing')
+          if (playingItem?.id) {
+            loadActiveSkipRequest(playingItem.id)
+          }
         }
       )
       .subscribe()
@@ -378,6 +384,16 @@ export function useQueue(roomId: string, userId: string) {
       setActiveSkipRequest(null)
     }
   }, [playing?.id, loadSkipVotes, loadActiveSkipRequest])
+
+  // When a skip request is active, fire once at expiry to auto-approve and trigger the skip
+  useEffect(() => {
+    if (!roomId || !activeSkipRequest) return
+    const delay = new Date(activeSkipRequest.expiresAt).getTime() - Date.now()
+    const timeout = setTimeout(() => {
+      loadActiveSkipRequest(itemsRef.current.find(i => i.status === 'playing')?.id)
+    }, Math.max(0, delay) + 500) // +500ms buffer for clock skew
+    return () => clearTimeout(timeout)
+  }, [roomId, activeSkipRequest?.id, loadActiveSkipRequest])
 
   // Subscriptions for skip_votes and veto_votes that need playing.id or skipRequest.id
   useEffect(() => {

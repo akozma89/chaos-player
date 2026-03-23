@@ -189,6 +189,14 @@ export async function requestHostSkip({
     return { requestId: null, error: new Error('Only the host can request a skip') }
   }
 
+  // Delete any non-pending skip requests for this item/host to avoid constraint violations
+  await supabase
+    .from('skip_requests')
+    .delete()
+    .eq('queue_item_id', queueItemId)
+    .eq('host_id', hostId)
+    .neq('status', 'pending')
+
   const expiresAt = new Date(Date.now() + durationMs).toISOString()
 
   const { data, error } = await supabase
