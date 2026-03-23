@@ -3,8 +3,6 @@ ALTER TABLE rooms RENAME COLUMN skip_vote_percentage TO skip_vote_count;
 ALTER TABLE rooms ALTER COLUMN skip_vote_count SET DEFAULT 2;
 
 -- 2. Update create_room RPC
-DROP FUNCTION IF EXISTS create_room(character varying, boolean, text, integer, text);
-
 CREATE OR REPLACE FUNCTION create_room(
   p_name character varying,
   p_is_public boolean DEFAULT true,

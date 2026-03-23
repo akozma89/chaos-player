@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(grep:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(supabase migration:*)",
+      "Bash(supabase db:*)"
     ]
   },
   "enabledMcpjsonServers": [
