@@ -10,6 +10,8 @@ import {
   removeUser,
   hostSkipOverride,
   isUserMuted,
+  requestHostSkip,
+  vetoHostSkip,
 } from '../lib/moderation'
 
 jest.mock('../lib/supabase', () => ({
@@ -26,6 +28,7 @@ jest.mock('../lib/supabase', () => ({
       delete: jest.fn(() => ({ eq: jest.fn(() => ({ data: null, error: null })) })),
       insert: jest.fn(() => ({ data: null, error: null })),
     })),
+    rpc: jest.fn(),
   },
 }))
 
@@ -339,5 +342,124 @@ describe('isUserMuted', () => {
 
     const result = await isUserMuted({ roomId: 'room-1', userId: 'u1' })
     expect(result).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// requestHostSkip
+// ---------------------------------------------------------------------------
+describe('requestHostSkip', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('creates a skip request when caller is host', async () => {
+    const { supabase } = require('../lib/supabase')
+
+    supabase.from.mockImplementation((table: string) => {
+      if (table === 'sessions') {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                single: jest.fn(() => ({
+                  data: { id: 'hs1', is_host: true },
+                  error: null,
+                })),
+              })),
+            })),
+          })),
+        }
+      }
+      if (table === 'skip_requests') {
+        return {
+          insert: jest.fn(() => ({
+            select: jest.fn(() => ({
+              single: jest.fn(() => ({
+                data: { id: 'req-1', status: 'pending' },
+                error: null,
+              })),
+            })),
+          })),
+        }
+      }
+      return {}
+    })
+
+    const result = await requestHostSkip({
+      roomId: 'room-1',
+      queueItemId: 'item-1',
+      hostId: 'host-id',
+    })
+
+    expect(result.error).toBeNull()
+    expect(result.requestId).toBe('req-1')
+  })
+
+  it('returns error when caller is not host', async () => {
+    const { supabase } = require('../lib/supabase')
+
+    supabase.from.mockImplementation(() => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            single: jest.fn(() => ({
+              data: { id: 'ns1', is_host: false },
+              error: null,
+            })),
+          })),
+        })),
+      })),
+    }))
+
+    const result = await requestHostSkip({
+      roomId: 'room-1',
+      queueItemId: 'item-1',
+      hostId: 'nonhost-id',
+    })
+
+    expect(result.error).toBeTruthy()
+    expect(result.error?.message).toContain('host')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// vetoHostSkip
+// ---------------------------------------------------------------------------
+describe('vetoHostSkip', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('casts a veto vote via RPC', async () => {
+    const { supabase } = require('../lib/supabase')
+    supabase.rpc.mockResolvedValue({
+      data: { success: true, vetoed: false },
+      error: null,
+    })
+
+    const result = await vetoHostSkip({
+      requestId: 'req-1',
+      userId: 'user-1',
+    })
+
+    expect(result.error).toBeNull()
+    expect(result.vetoed).toBe(false)
+    expect(supabase.rpc).toHaveBeenCalledWith('cast_veto_vote', {
+      p_skip_request_id: 'req-1',
+      p_user_id: 'user-1',
+    })
+  })
+
+  it('handles RPC errors', async () => {
+    const { supabase } = require('../lib/supabase')
+    supabase.rpc.mockResolvedValue({
+      data: null,
+      error: { message: 'RPC Error' },
+    })
+
+    const result = await vetoHostSkip({
+      requestId: 'req-1',
+      userId: 'user-1',
+    })
+
+    expect(result.error).toBeTruthy()
+    expect(result.error?.message).toBe('RPC Error')
   })
 })

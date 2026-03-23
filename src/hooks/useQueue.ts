@@ -17,6 +17,14 @@ export function useQueue(roomId: string, userId: string) {
   const [recentReward, setRecentReward] = useState<{ amount: number; userId: string; queueItemId: string } | null>(null)
   const [skipVotes, setSkipVotes] = useState<string[]>([])
   const [activeSessionCount, setActiveSessionCount] = useState<number>(1)
+  const [activeSkipRequest, setActiveSkipRequest] = useState<{
+    id: string;
+    status: string;
+    expiresAt: string;
+    vetoThreshold: number;
+    vetoCount: number;
+  } | null>(null)
+  const [userVetoVotes, setUserVetoVotes] = useState<string[]>([])
   const [isSyncing, setIsSyncing] = useState(false)
   const isSyncingRef = useRef(false)
 
@@ -126,6 +134,43 @@ export function useQueue(roomId: string, userId: string) {
     }
   }, [roomId])
 
+  const loadActiveSkipRequest = useCallback(async (playingItemId?: string) => {
+    if (!roomId || !playingItemId) {
+      setActiveSkipRequest(null)
+      setUserVetoVotes([])
+      return
+    }
+
+    const { data: request, error: reqError } = await supabase
+      .from('skip_requests')
+      .select()
+      .eq('room_id', roomId)
+      .eq('queue_item_id', playingItemId)
+      .eq('status', 'pending')
+      .single()
+
+    if (reqError || !request) {
+      setActiveSkipRequest(null)
+      setUserVetoVotes([])
+      return
+    }
+
+    const { data: vetoes } = await supabase
+      .from('veto_votes')
+      .select('user_id')
+      .eq('skip_request_id', request.id)
+
+    const vetoCount = vetoes?.length || 0
+    setUserVetoVotes(vetoes?.map(v => v.user_id) || [])
+    setActiveSkipRequest({
+      id: request.id,
+      status: request.status,
+      expiresAt: request.expires_at,
+      vetoThreshold: request.veto_threshold,
+      vetoCount
+    })
+  }, [roomId])
+
   const loadQueueWithBootstrap = useCallback(async () => {
     if (!roomId) return
     const { data, error: fetchError } = await getQueueItems(roomId)
@@ -207,12 +252,14 @@ export function useQueue(roomId: string, userId: string) {
 
     // Initial load: wait for all essential data
     setLoading(true)
+    const playingItem = items.find(i => i.status === 'playing')
     Promise.all([
       loadQueueWithBootstrap(),
       loadUserVotes(),
       loadSession(),
       loadRoom(),
-      loadSessionCount()
+      loadSessionCount(),
+      loadActiveSkipRequest(playingItem?.id)
     ]).finally(() => {
       setLoading(false)
     })
@@ -280,43 +327,95 @@ export function useQueue(roomId: string, userId: string) {
       )
       .subscribe()
 
+    const skipRequestsChannel = supabase
+      .channel(`skip_requests:${roomId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'skip_requests', filter: `room_id=eq.${roomId}` },
+        () => {
+          // We'll rely on the useEffect below that watches playing?.id
+          // But if playing track is same and status changes to approved/vetoed, we need to refresh.
+          // Since we don't have playing?.id here, we'll re-fetch queue first which updates playing.
+          loadQueueWithBootstrap()
+        }
+      )
+      .subscribe()
+
+    const vetoVotesChannel = supabase
+      .channel(`veto_votes:${roomId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'veto_votes' }, // filter by room_id not easy via join here
+        () => {
+           // Rely on the useEffect that has access to activeSkipRequest.id
+        }
+      )
+      .subscribe()
+
     return () => {
       supabase.removeChannel(queueChannel)
       supabase.removeChannel(roomChannel)
       supabase.removeChannel(skipVotesChannel)
       supabase.removeChannel(sessionsChannel)
+      supabase.removeChannel(skipRequestsChannel)
+      supabase.removeChannel(vetoVotesChannel)
     }
-  }, [roomId, loadQueueWithBootstrap, loadUserVotes, loadSession, loadRoom, loadSessionCount])
+  }, [roomId, loadQueueWithBootstrap, loadUserVotes, loadSession, loadRoom, loadSessionCount, loadActiveSkipRequest])
 
   // Split items for UI
+  const itemsRef = useRef(items)
+  itemsRef.current = items
   const playing = items.find(i => i.status === 'playing') || null
   const pending = computeQueueOrder(items.filter(i => i.status === 'pending'))
 
-  // Refresh skip votes when playing track changes
+  // Refresh skip votes and requests when playing track changes
   useEffect(() => {
     if (playing?.id) {
       loadSkipVotes(playing.id)
+      loadActiveSkipRequest(playing.id)
     } else {
       setSkipVotes([])
+      setActiveSkipRequest(null)
     }
-  }, [playing?.id, loadSkipVotes])
+  }, [playing?.id, loadSkipVotes, loadActiveSkipRequest])
 
-  // Also refresh skip votes on skip_votes table change by using a secondary effect or just 
-  // relying on the channel above. Since the channel above doesn't have playing.id, let's fix that.
+  // Subscriptions for skip_votes and veto_votes that need playing.id or skipRequest.id
   useEffect(() => {
     if (!roomId) return
+    
     const skipVotesChannel = supabase
       .channel(`skip_votes_refetch:${roomId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'skip_votes', filter: `room_id=eq.${roomId}` },
-        () => {
-          if (playing?.id) loadSkipVotes(playing.id)
-        }
+        () => { if (playing?.id) loadSkipVotes(playing.id) }
       )
       .subscribe()
-    return () => { supabase.removeChannel(skipVotesChannel) }
-  }, [roomId, playing?.id, loadSkipVotes])
+
+    const vetoVotesChannel = supabase
+      .channel(`veto_votes_refetch:${roomId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'veto_votes' },
+        () => { if (playing?.id) loadActiveSkipRequest(playing.id) }
+      )
+      .subscribe()
+
+    const skipRequestsUpdateChannel = supabase
+      .channel(`skip_requests_refetch:${roomId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'skip_requests', filter: `room_id=eq.${roomId}` },
+        () => { if (playing?.id) loadActiveSkipRequest(playing.id) }
+      )
+      .subscribe()
+
+    return () => { 
+      supabase.removeChannel(skipVotesChannel)
+      supabase.removeChannel(vetoVotesChannel)
+      supabase.removeChannel(skipRequestsUpdateChannel)
+    }
+  }, [roomId, playing?.id, loadSkipVotes, loadActiveSkipRequest])
 
   const vote = useCallback(
     async (queueItemId: string, type: 'upvote' | 'downvote') => {
@@ -408,6 +507,8 @@ export function useQueue(roomId: string, userId: string) {
     isSyncing,
     skipVotes,
     activeSessionCount,
+    activeSkipRequest,
+    userVetoVotes,
     refresh: loadQueueWithBootstrap 
   }
 }

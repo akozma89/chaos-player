@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { muteUser, removeUser, hostSkipOverride } from '../lib/moderation'
+import { muteUser, removeUser, hostSkipOverride, requestHostSkip } from '../lib/moderation'
 import type { Session } from '../types'
 
 interface ModerationPanelProps {
@@ -24,6 +24,7 @@ export default function ModerationPanel({
   const [actionState, setActionState] = useState<ActionState>('idle')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [skipState, setSkipState] = useState<ActionState>('idle')
+  const [democSkipState, setDemocSkipState] = useState<ActionState>('idle')
 
   const guests = participants.filter((p) => !p.isHost)
 
@@ -65,6 +66,24 @@ export default function ModerationPanel({
     }
   }
 
+  async function handleDemocraticSkip() {
+    if (!currentQueueItemId) return
+    setDemocSkipState('loading')
+    const { error } = await requestHostSkip({ 
+      roomId, 
+      queueItemId: currentQueueItemId, 
+      hostId,
+      durationMs: 30000 
+    })
+    if (error) {
+      setDemocSkipState('error')
+      setErrorMsg(error.message)
+    } else {
+      setDemocSkipState('idle')
+      onAction?.('democratic-skip')
+    }
+  }
+
   return (
     <div
       className="rounded-xl border border-red-500/30 bg-gray-900 p-4 shadow-lg shadow-red-900/20"
@@ -76,14 +95,23 @@ export default function ModerationPanel({
       </h2>
 
       {/* Host skip override */}
-      <div className="mb-4">
+      <div className="mb-4 space-y-2">
         <button
           onClick={handleHostSkip}
           disabled={!currentQueueItemId || skipState === 'loading'}
           className="w-full rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40"
           data-testid="host-skip-btn"
         >
-          {skipState === 'loading' ? 'Skipping…' : 'Skip Track (Free)'}
+          {skipState === 'loading' ? 'Skipping…' : 'Skip Override (Free)'}
+        </button>
+
+        <button
+          onClick={handleDemocraticSkip}
+          disabled={!currentQueueItemId || democSkipState === 'loading'}
+          className="w-full rounded-lg border-2 border-red-500 px-4 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+          data-testid="democratic-skip-btn"
+        >
+          {democSkipState === 'loading' ? 'Requesting...' : 'Democratic Skip (30s Veto)'}
         </button>
       </div>
 

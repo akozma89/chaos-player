@@ -1,5 +1,20 @@
 # Changelog
 
+## Cycle #1 (Evolution Cycle) - 2026-03-23
+
+### Added
+- **Democratic Skip Veto**: Hosts can now veto active skips with a neon-amber HUD overlay.
+- **Veto Supabase RPC**: New `veto_skip` RPC for secure, atomic host-only veto operations.
+- **SkipVetoOverlay**: Interactive UI component for real-time skip cancellation feedback.
+- **ModerationPanel Veto**: Added manual veto trigger for hosts to cancel unnecessary skips.
+
+### Fixed
+- **Skip Logic Race**: Improved coordination between `useQueue` and `SkipVetoOverlay` to prevent UI flickering during rapid sync events.
+
+### Changed
+- `README.md` updated with latest test coverage stats (277 tests, 39 suites).
+- Test suite expanded with 10 new tests for moderation logic and veto UI.
+
 ## Cycle #23 - 2026-03-20
 
 ### Added

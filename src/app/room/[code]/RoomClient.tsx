@@ -11,8 +11,10 @@ import { UnifiedPlayer } from '../../../components/UnifiedPlayer';
 import { WinnerToast } from '../../../components/WinnerToast';
 import { TokenEarnNotification } from '../../../components/TokenEarnNotification';
 import ChaosSyncOverlay from '../../../components/ChaosSyncOverlay';
+import SkipVetoOverlay from '../../../components/SkipVetoOverlay';
 import { TrackAddedToast } from '../../../components/TrackAddedToast';
 import { SearchModal } from '../../../components/SearchModal';
+import { vetoHostSkip } from '../../../lib/moderation';
 
 const SPOTIFY_CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID ?? ''
 
@@ -51,11 +53,26 @@ const RoomClient = ({ room: initialRoom, userId }: RoomClientProps) => {
     isSyncing,
     skipVotes,
     activeSessionCount,
+    activeSkipRequest,
+    userVetoVotes,
     refresh 
   } = useQueue(initialRoom.id, userId);
 
   const room = liveRoom || initialRoom;
   const isHost = room.hostId === userId;
+
+  const handleVeto = useCallback(async () => {
+    if (!activeSkipRequest) return;
+    const { error: vetoError } = await vetoHostSkip({
+      requestId: activeSkipRequest.id,
+      userId
+    });
+    if (vetoError) {
+      console.error('Veto failed:', vetoError);
+    } else {
+      refresh();
+    }
+  }, [activeSkipRequest, userId, refresh]);
 
   const handleCopyLink = useCallback(async () => {
     setIsCopying(true);
@@ -174,6 +191,19 @@ const RoomClient = ({ room: initialRoom, userId }: RoomClientProps) => {
     <div className="min-h-screen bg-black text-white p-4 md:p-8">
       
       <ChaosSyncOverlay isSyncing={isSyncing} />
+
+      {activeSkipRequest && (
+        <SkipVetoOverlay
+          requestId={activeSkipRequest.id}
+          expiresAt={activeSkipRequest.expiresAt}
+          vetoCount={activeSkipRequest.vetoCount}
+          vetoThreshold={activeSkipRequest.vetoThreshold}
+          activeSessionCount={activeSessionCount}
+          onVeto={handleVeto}
+          isVetoedByUser={userVetoVotes.includes(userId)}
+          isHost={isHost}
+        />
+      )}
 
       {recentReward && (
         <TokenEarnNotification 

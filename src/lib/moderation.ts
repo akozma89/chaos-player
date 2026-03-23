@@ -159,3 +159,84 @@ export async function isUserMuted({ roomId, userId }: IsUserMutedParams): Promis
   if (error || !data) return false
   return (data as Record<string, unknown>).is_muted === true
 }
+
+// ---------------------------------------------------------------------------
+// requestHostSkip – Host initiates a skip that can be vetoed
+// ---------------------------------------------------------------------------
+
+interface RequestHostSkipParams {
+  roomId: string
+  queueItemId: string
+  hostId: string
+  vetoThreshold?: number
+  durationMs?: number
+}
+
+interface RequestHostSkipResult {
+  requestId: string | null
+  error: Error | null
+}
+
+export async function requestHostSkip({
+  roomId,
+  queueItemId,
+  hostId,
+  vetoThreshold = 50,
+  durationMs = 30000, // 30s default
+}: RequestHostSkipParams): Promise<RequestHostSkipResult> {
+  const isHost = await verifyHost(roomId, hostId)
+  if (!isHost) {
+    return { requestId: null, error: new Error('Only the host can request a skip') }
+  }
+
+  const expiresAt = new Date(Date.now() + durationMs).toISOString()
+
+  const { data, error } = await supabase
+    .from('skip_requests')
+    .insert({
+      room_id: roomId,
+      queue_item_id: queueItemId,
+      host_id: hostId,
+      status: 'pending',
+      expires_at: expiresAt,
+      veto_threshold: vetoThreshold,
+    })
+    .select()
+    .single()
+
+  if (error) return { requestId: null, error: new Error(error.message) }
+  return { requestId: (data as Record<string, unknown>).id as string, error: null }
+}
+
+// ---------------------------------------------------------------------------
+// vetoHostSkip – User votes to veto a host skip request
+// ---------------------------------------------------------------------------
+
+interface VetoHostSkipParams {
+  requestId: string
+  userId: string
+}
+
+interface VetoHostSkipResult {
+  vetoed: boolean
+  error: Error | null
+}
+
+export async function vetoHostSkip({
+  requestId,
+  userId,
+}: VetoHostSkipParams): Promise<VetoHostSkipResult> {
+  const { data, error } = await supabase.rpc('cast_veto_vote', {
+    p_skip_request_id: requestId,
+    p_user_id: userId,
+  })
+
+  if (error) return { vetoed: false, error: new Error(error.message) }
+  
+  const result = data as { success: boolean; vetoed: boolean; error?: string }
+  if (!result.success) {
+    return { vetoed: false, error: new Error(result.error || 'Failed to cast veto vote') }
+  }
+
+  return { vetoed: result.vetoed, error: null }
+}
